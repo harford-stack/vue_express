@@ -84,12 +84,12 @@ app.get('/emp/delete', async (req, res) => {
 });
 
 app.get('/emp/insert', async (req, res) => {
-  const { empNo, eName, job, selectDept } = req.query;
+  const { empNo, eName, job, sal, selectDept } = req.query;
 
   try {
     await connection.execute(
-      `INSERT INTO EMP(EMPNO, ENAME, JOB, DEPTNO) VALUES(:empNo, :eName, :job, :selectDept)`,
-      [empNo, eName, job, selectDept], // 여기 넣어줌으로서 바로 윗줄에서 :입력이 가능하다
+      `INSERT INTO EMP(EMPNO, ENAME, JOB, SAL, DEPTNO) VALUES(:empNo, :eName, :job, :sal, :selectDept)`,
+      [empNo, eName, job, sal, selectDept], // 여기 넣어줌으로서 바로 윗줄에서 :입력이 가능하다
       // 여기 넣지 않으면 PROFNO = ${profNo}
       { autoCommit: true }
     );
@@ -104,7 +104,7 @@ app.get('/emp/insert', async (req, res) => {
 
 app.get('/emp/info', async (req, res) => {
   const { empNo } = req.query;
-  let query = `SELECT E.*, EMPNO "empNo", ENAME "eName", JOB "job", DEPTNO "selectDept" `
+  let query = `SELECT E.*, EMPNO "empNo", ENAME "eName", JOB "job", SAL "sal", DEPTNO "selectDept" `
             + `FROM EMP E `
             + `WHERE EMPNO = ${empNo}`
   try {
