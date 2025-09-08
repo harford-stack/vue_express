@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- vue + express 사용을 위해 위 2줄 필수 -->
+    <style>
+        table, tr, td, th {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px 10px;
+            text-align: center;
+        }
+        th {
+            background-color: burlywood;
+        }
+        tr:nth-child(even) {
+            background-color: beige;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"> <!-- html 코드는 id가 app인 태그 안에서 작업 -->
+        <table>
+            <tr>
+                <th>사원번호</th>
+                <th>이름</th>
+                <th>직책</th>
+                <th>급여</th>
+                <th>부서</th>
+            </tr>
+            <tr v-for="item in list">
+                <td>{{item.EMPNO}}</td>
+                <td>{{item.ENAME}}</td>
+                <td>{{item.JOB}}</td>
+                <td>{{item.SAL}}</td>
+                <td>{{item.DNAME}}</td>
+            </tr>
+        </table>
+        <div v-for="item in list">{{item.ENAME}}</div>
+    </div>
+</body>
+</html>
+
+<script>
+    const app = Vue.createApp({
+        data() {
+            return {
+                // 변수 - (key : value)
+                list : []
+            };
+        },
+        methods: {
+            // 함수(메소드) - (key : function())
+            fnEmpList: function () {
+                let self = this;
+                $.ajax({
+                    url: "http://localhost:3009/emp/list",
+                    dataType: "json",
+                    type: "GET",
+                    data: {},
+                    success: function (data) {
+                        console.log(data);
+                        self.list = data.empList;
+                        // data는 지역변수라 밖에 못끌고나가니
+                        // data 안의 empList를 쓰고 싶다면 위에서 변수 선언하여 담아준다
+                    }
+                });
+            }
+        }, // methods
+        mounted() {
+            // 처음 시작할 때 실행되는 부분
+            let self = this;
+            self.fnEmpList();
+        }
+    });
+
+    app.mount('#app');
+</script>
