@@ -26,26 +26,22 @@
     <div id="app"> <!-- html 코드는 id가 app인 태그 안에서 작업 -->
         <table>
             <tr>
-                <th>사원번호</th>
+                <th>교수번호</th>
                 <th>이름</th>
-                <th>직책</th>
+                <th>아이디</th>
+                <th>직급</th>
                 <th>급여</th>
-                <th>부서</th>
-                <th>수정</th>
                 <th>삭제</th>
             </tr>
             <tr v-for="item in list">
-                <td>{{item.EMPNO}}</td>
-                <td>{{item.ENAME}}</td>
-                <td>{{item.JOB}}</td>
-                <td>{{item.SAL}}</td>
-                <td>{{item.DNAME}}</td>
-                <td><button @click="fnEdit(item.EMPNO)">수정</button></td>
-                <td><button @click="fnRemove(item.EMPNO)">삭제</button></td>
-                <!-- 삭제하고자 하는 사람의 사번을 파라미터로 보낸다 -->
+                <td>{{item.PROFNO}}</td>
+                <td>{{item.NAME}}</td>
+                <td>{{item.ID}}</td>
+                <td>{{item.POSITION}}</td>
+                <td>{{item.PAY}}</td>
+                <td><button @click="fnRemove(item.PROFNO)">삭제</button></td>
             </tr>
         </table>
-        <a href="emp-edit.html"><button>추가</button></a>
     </div>
 </body>
 </html>
@@ -55,54 +51,51 @@
         data() {
             return {
                 // 변수 - (key : value)
-                list : []
+                list : [] // 서버 호출의 결과를 여기 넣어준다 69째줄
             };
         },
         methods: {
             // 함수(메소드) - (key : function())
-            fnEmpList: function () {
+            fnProfList: function () {
                 let self = this;
+                let param = {};
                 $.ajax({
-                    url: "http://localhost:3009/emp/list",
+                    url: "http://localhost:3009/prof/list",
                     dataType: "json",
                     type: "GET",
-                    data: {},
+                    data: param,
                     success: function (data) {
                         console.log(data);
-                        self.list = data.empList;
-                        // data는 지역변수라 밖에 못끌고나가니
-                        // data 안의 empList를 쓰고 싶다면 위에서 변수 선언하여 담아준다
+                        self.list = data.profList;
                     }
                 });
             },
-            fnRemove: function(empNo) {
-                // alert(empNo);
+            fnRemove: function(profNo) {
                 let self = this;
+                let param = {
+                    profNo : profNo
+                };
                 if(!confirm("정말 삭제하시겠습니까")) {
                     return;
                 }
                 $.ajax({
-                    url: "http://localhost:3009/emp/delete",
+                    url: "http://localhost:3009/prof/delete",
                     dataType: "json",
                     type: "GET",
-                    data: {empNo : empNo}, // 서버에 보내주는 값
+                    data: param,
                     success: function (data) {
                         if(data.result == "success") {
                             alert("삭제되었습니다");
-                            self.fnEmpList();
+                            self.fnProfList();
                         }
                     }
-                    // 서버 파일을 보면 넘어오는게 result : "success" 이다
                 });
-            },
-            fnEdit: function(empNo) {
-                location.href="emp-edit.html?empNo="+empNo;
             }
         }, // methods
         mounted() {
             // 처음 시작할 때 실행되는 부분
             let self = this;
-            self.fnEmpList();
+            self.fnProfList(); // html 영역에서 fnProfList를 따로 호출하지 않았기 때문에 여기서 호출
         }
     });
 
