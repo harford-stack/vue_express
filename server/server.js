@@ -37,11 +37,18 @@ app.get('/', (req, res) => {
 });
 
 app.get('/emp/list', async (req, res) => {
-  const { } = req.query;
+  const { deptNo } = req.query;
   let query = `SELECT EMPNO, ENAME, JOB, SAL, DNAME `
             + `FROM EMP E `
             + `INNER JOIN DEPT D ON E.DEPTNO = D.DEPTNO `
-            + `ORDER BY SAL DESC`;
+            + `ORDER BY SAL DESC `;
+  if(deptNo != "" && deptNo != null) {
+    query = `SELECT EMPNO, ENAME, JOB, SAL, DNAME `
+            + `FROM EMP E `
+            + `INNER JOIN DEPT D ON E.DEPTNO = D.DEPTNO `
+            + `WHERE E.DEPTNO = ${deptNo} `
+            + `ORDER BY SAL DESC `;
+  }
   try {
     const result = await connection.execute(query);
     const columnNames = result.metaData.map(column => column.name);
@@ -83,6 +90,34 @@ app.get('/emp/delete', async (req, res) => {
   }
 });
 
+app.get('/emp/deleteAll', async (req, res) => {
+  const { removeList } = req.query;
+  console.log(removeList);
+  let query = "DELETE FROM EMP WHERE EMPNO IN (";
+  for(let i=0; i<removeList.length; i++) {
+    query += removeList[i];
+    if(removeList.length-1 != i) {
+      query += ",";
+    }
+  }
+  query += ")";
+  console.log(query);
+
+  try {
+    await connection.execute(
+      query,
+      [], // 여기 넣어줌으로서 바로 윗줄에서 :입력이 가능하다
+      { autoCommit: true }
+    );
+    res.json({
+        result : "success"
+    });
+  } catch (error) {
+    console.error('Error executing insert', error);
+    res.status(500).send('Error executing insert');
+  }
+});
+
 app.get('/emp/insert', async (req, res) => {
   const { empNo, eName, job, sal, selectDept } = req.query;
 
@@ -104,8 +139,9 @@ app.get('/emp/insert', async (req, res) => {
 
 app.get('/emp/info', async (req, res) => {
   const { empNo } = req.query;
-  let query = `SELECT E.*, EMPNO "empNo", ENAME "eName", JOB "job", SAL "sal", DEPTNO "selectDept" `
+  let query = `SELECT E.*, EMPNO "empNo", ENAME "eName", JOB "job", SAL "sal", E.DEPTNO "selectDept", DNAME `
             + `FROM EMP E `
+            + `INNER JOIN DEPT D ON E.DEPTNO = D.DEPTNO `
             + `WHERE EMPNO = ${empNo}`
   try {
     const result = await connection.execute(query);
@@ -127,6 +163,24 @@ app.get('/emp/info', async (req, res) => {
   } catch (error) {
     console.error('Error executing query', error);
     res.status(500).send('Error executing query');
+  }
+});
+
+app.get('/emp/update', async (req, res) => {
+  const { empNo, eName, job, sal, selectDept } = req.query;
+  try {
+    await connection.execute(
+      `UPDATE EMP SET ENAME = :eName, JOB = :job, SAL = :sal, DEPTNO = :selectDept WHERE EMPNO = :empNo`,
+      [eName, job, sal, selectDept, empNo], // 여기 넣어줌으로서 쿼리에서 :입력이 가능하다 // 순서는 쿼리문의 등장 순서와 동일해야함
+      // 여기 넣지 않으면 PROFNO = ${profNo}
+      { autoCommit: true }
+    );
+    res.json({
+        result : "success"
+    });
+  } catch (error) {
+    console.error('Error executing delete', error);
+    res.status(500).send('Error executing delete');
   }
 });
 
@@ -177,6 +231,97 @@ app.get('/prof/delete', async (req, res) => {
   }
 });
 
+app.get('/prof/deleteAll', async (req, res) => {
+  const { removeList } = req.query;
+  console.log(removeList);
+  let query = "DELETE FROM PROFESSOR WHERE PROFNO IN (";
+  for(let i=0; i<removeList.length; i++) {
+    query += removeList[i];
+    if(removeList.length-1 != i) {
+      query += ",";
+    }
+  }
+  query += ")";
+  console.log(query);
+
+  try {
+    await connection.execute(
+      query,
+      [], // 여기 넣어줌으로서 바로 윗줄에서 :입력이 가능하다
+      { autoCommit: true }
+    );
+    res.json({
+        result : "success"
+    });
+  } catch (error) {
+    console.error('Error executing insert', error);
+    res.status(500).send('Error executing insert');
+  }
+});
+
+app.get('/prof/insert', async (req, res) => {
+  const { profNo, profName, profId, selectPosition, pay } = req.query;
+
+  try {
+    await connection.execute(
+      `INSERT INTO PROFESSOR(PROFNO, NAME, ID, POSITION, PAY) VALUES(:profNo, :profName, :profId, :selectPosition, :pay)`,
+      [profNo, profName, profId, selectPosition, pay], // 여기 넣어줌으로서 바로 윗줄에서 :입력이 가능하다
+      // 여기 넣지 않으면 PROFNO = ${profNo}
+      { autoCommit: true }
+    );
+    res.json({
+        result : "success"
+    });
+  } catch (error) {
+    console.error('데이터 삽입 오류 발생:', error.message);
+    console.error('Error executing delete', error);
+    res.status(500).send('Error executing delete');
+  }
+});
+
+app.get('/prof/info', async (req, res) => {
+  const { profNo } = req.query;
+  let query = `SELECT P.*, PROFNO "profNo", NAME "profName", ID "profId", POSITION "selectPosition", PAY "pay" FROM PROFESSOR P WHERE PROFNO = ${profNo}`
+  try {
+    const result = await connection.execute(query);
+    const columnNames = result.metaData.map(column => column.name);
+    // 쿼리 결과를 JSON 형태로 변환
+    const rows = result.rows.map(row => {
+      // 각 행의 데이터를 컬럼명에 맞게 매핑하여 JSON 객체로 변환
+      const obj = {};
+      columnNames.forEach((columnName, index) => {
+        obj[columnName] = row[index];
+      });
+      return obj;
+    });
+    // 리턴
+    res.json({
+        result : "success",
+        info : rows[0]
+    });
+  } catch (error) {
+    console.error('Error executing query', error);
+    res.status(500).send('Error executing query');
+  }
+});
+
+app.get('/prof/update', async (req, res) => {
+  const { profNo, profName, profId, selectPosition, pay } = req.query;
+  try {
+    await connection.execute(
+      `UPDATE PROFESSOR SET NAME = :profName, ID = :profId, POSITION = : selectPosition, PAY = :pay WHERE PROFNO = :profNo`,
+      [profName, profId, selectPosition, pay, profNo], // 여기 넣어줌으로서 쿼리에서 :입력이 가능하다 // 순서는 쿼리문의 등장 순서와 동일해야함
+      // 여기 넣지 않으면 PROFNO = ${profNo}
+      { autoCommit: true }
+    );
+    res.json({
+        result : "success"
+    });
+  } catch (error) {
+    console.error('Error executing delete', error);
+    res.status(500).send('Error executing delete');
+  }
+});
 
 
 // 서버 시작

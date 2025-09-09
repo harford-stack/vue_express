@@ -34,46 +34,43 @@
     <div id="app"> <!-- html 코드는 id가 app인 태그 안에서 작업 -->
         <table>
             <tr>
-                <th>사번</th>
+                <th>교수번호</th>
                 <td>
-                    <span v-if="empNo == ''">
-                        <input type="text" v-model="info.empNo">
+                    <span v-if="profNo == ''">
+                        <input type="text" v-model="info.profNo">
                         <button class="check-btn">중복체크</button>
                         <!-- 중복체크 팁 : empNo가 넘어오는지 아닌지로 -->
                     </span>
                     <span v-else>
-                        <input type="text" v-model="info.empNo" disabled>
+                        <input type="text" v-model="info.profNo" disabled>
                     </span>
                 </td>
             </tr>
             <tr>
                 <th>이름</th>
-                <td><input type="text" v-model="info.eName"></td>
+                <td><input type="text" v-model="info.profName"></td>
             </tr>
             <tr>
-                <th>직책</th>
-                <td><input type="text" v-model="info.job"></td>
+                <th>아이디</th>
+                <td><input type="text" v-model="info.profId"></td>
+            </tr>
+            <tr>
+                <th>직급</th>
+                <td>
+                    <label><input type="radio" value="전임강사" v-model="info.selectPosition" checked>전임강사</label><br>
+                    <label><input type="radio" value="조교수" v-model="info.selectPosition">조교수</label><br>
+                    <label><input type="radio" value="정교수" v-model="info.selectPosition">정교수</label><br>
+                    <label><input type="radio" value="총장" v-model="info.selectPosition">총장</label>
+                </td>
             </tr>
             <tr>
                 <th>급여</th>
-                <td><input type="text" v-model="info.sal"></td>
+                <td><input type="text" v-model="info.pay"></td>
             </tr>
-            <tr>
-                <th>부서</th>
-                <td>
-                    <label><input type="radio" value="10" v-model="info.selectDept" checked>ACCOUNTING</label><br>
-                    <label><input type="radio" value="20" v-model="info.selectDept">RESEARCH</label><br>
-                    <label><input type="radio" value="30" v-model="info.selectDept">SALES</label><br>
-                    <label><input type="radio" value="40" v-model="info.selectDept">OPERATIONS</label>
-                    <!--db가 DEPTNO로 되어있기 때문에 value 값 위와 같이 함 -->
-                    <!-- v-model이 같은 값끼리는 중복을 허용하지 않음 -->
-                    <!-- checked를 쓰면 체크는 되지만 v-model 값이 넘어오지 않음
-                    아래 변수 선언에서 selectDept : "10" 지정을 따로 해준다 -->
-                </td>
-            </tr>
+            
         </table>
         <div>
-            <button v-if="empNo == ''" @click="fnAdd">추가</button>
+            <button v-if="profNo == ''" @click="fnAdd">추가</button>
             <button v-else @click="fnEdit">수정</button>
         </div>
     </div>
@@ -86,38 +83,38 @@
             return {
                 // 변수 - (key : value)
                 info : {
-                    selectDept : "10"
+                    selectPosition : "전임강사"
                 },
-                empNo : ""
+                profNo : ""
             };
         },
         methods: {
             // 함수(메소드) - (key : function())
             fnAdd: function () {
                 let self = this;
-                if(self.info.empNo.length != 4) {
-                    alert("사원번호는 4자리 숫자입니다");
+                if(self.info.profNo.length != 4) {
+                    alert("교수번호는 4자리 숫자입니다");
                     return;
                 }
                 console.log(self.info);
                 $.ajax({
-                    url: "http://localhost:3009/emp/insert",
+                    url: "http://localhost:3009/prof/insert",
                     dataType: "json",
                     type: "GET",
                     data: self.info,
                     success: function (data) {
                         alert("추가되었습니다");
-                        location.href="emp-list.html";
+                        location.href="prof-list.html";
                     }
                 });
             },
             fnInfo: function () {
                 let self = this;
                 $.ajax({
-                    url: "http://localhost:3009/emp/info",
+                    url: "http://localhost:3009/prof/info",
                     dataType: "json",
                     type: "GET",
-                    data: {empNo : self.empNo},
+                    data: {profNo : self.profNo},
                     success: function (data) {
                         console.log(data);
                         self.info = data.info;
@@ -126,21 +123,15 @@
             },
             fnEdit: function() {
                 let self = this;
-                // let param = {
-                //     empNo : self.info.empNo,
-                //     eName : self.info.eName,
-                //     job : self.info.job,
-                //     selectDept : self.info.selectDept
-                // };
                 let param = self.info;
                 $.ajax({
-                    url: "http://localhost:3009/emp/update",
+                    url: "http://localhost:3009/prof/update",
                     dataType: "json",
                     type: "GET",
                     data: param,
                     success: function (data) {
                         alert("수정되었습니다");
-                        location.href="emp-list.html";
+                        location.href="prof-list.html";
                     }
                 });
             }
@@ -149,9 +140,9 @@
             // 처음 시작할 때 실행되는 부분
             let self = this;
             const queryParams = new URLSearchParams(window.location.search);
-            self.empNo = queryParams.get('empNo') || ''; 
+            self.profNo = queryParams.get('profNo') || ''; 
 
-            if(self.empNo != "") {
+            if(self.profNo != "") {
                 self.fnInfo();
             }
         }

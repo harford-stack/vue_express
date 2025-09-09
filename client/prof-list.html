@@ -26,22 +26,28 @@
     <div id="app"> <!-- html 코드는 id가 app인 태그 안에서 작업 -->
         <table>
             <tr>
+                <th>선택</th>
                 <th>교수번호</th>
                 <th>이름</th>
                 <th>아이디</th>
                 <th>직급</th>
                 <th>급여</th>
+                <th>수정</th>
                 <th>삭제</th>
             </tr>
             <tr v-for="item in list">
+                <td><input type="checkbox" :value="item.PROFNO" v-model="selectItems"></td>
                 <td>{{item.PROFNO}}</td>
                 <td>{{item.NAME}}</td>
                 <td>{{item.ID}}</td>
                 <td>{{item.POSITION}}</td>
                 <td>{{item.PAY}}</td>
+                <td><button @click="fnEdit(item.PROFNO)">수정</button></td>
                 <td><button @click="fnRemove(item.PROFNO)">삭제</button></td>
             </tr>
         </table>
+        <a href="prof-edit.html"><button>추가</button></a>
+        <button @click="fnRemoveAll">선택삭제</button>
     </div>
 </body>
 </html>
@@ -51,7 +57,8 @@
         data() {
             return {
                 // 변수 - (key : value)
-                list : [] // 서버 호출의 결과를 여기 넣어준다 69째줄
+                list : [], // 서버 호출의 결과를 여기 넣어준다 69째줄
+                selectItems : []
             };
         },
         methods: {
@@ -89,6 +96,30 @@
                             self.fnProfList();
                         }
                     }
+                });
+            },
+            fnEdit: function(profNo) {
+                location.href="prof-edit.html?profNo="+profNo;
+            },
+            fnRemoveAll: function() {
+                let self = this;
+                console.log(self.selectItems);
+                if(!confirm("정말 삭제하시겠습니까")) {
+                    return;
+                }
+                $.ajax({
+                    url: "http://localhost:3009/prof/deleteAll",
+                    dataType: "json",
+                    type: "GET",
+                    data: {removeList : self.selectItems}, // 서버에 보내주는 값
+                    traditional : true, // list 형태로 서버에 보내주기 위한 기능
+                    success: function (data) {
+                        if(data.result == "success") {
+                            alert("삭제되었습니다");
+                            self.fnProfList();
+                        }
+                    }
+                    // 서버 파일을 보면 넘어오는게 result : "success" 이다
                 });
             }
         }, // methods

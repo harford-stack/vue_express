@@ -20,12 +20,29 @@
         tr:nth-child(even) {
             background-color: beige;
         }
+
+        #dept-menu {
+            margin-bottom: 15px;
+            text-align: center;
+            height: 30px;
+        }
     </style>
 </head>
 <body>
     <div id="app"> <!-- html 코드는 id가 app인 태그 안에서 작업 -->
+        <div>
+            <!-- 부서별 필터링 하기 -->
+            <select id="dept-menu" v-model="deptNo" @change="fnEmpList">
+                <option value="">:: 전체 ::</option>
+                <option value="10">:: ACCOUNTING ::</option>
+                <option value="20">:: RESEARCH ::</option>
+                <option value="30">:: SALES ::</option>
+                <option value="40">:: OPERATIONS ::</option>
+            </select>
+        </div>
         <table>
             <tr>
+                <th>선택</th>
                 <th>사원번호</th>
                 <th>이름</th>
                 <th>직책</th>
@@ -35,8 +52,12 @@
                 <th>삭제</th>
             </tr>
             <tr v-for="item in list">
+                <td><input type="checkbox" :value="item.EMPNO" v-model="selectItems"></td>
+                <!-- 동적으로 처리하고자 한다면 value 앞에 : 붙여준다, 안그러면 그냥 문자열 item.EMPNO -->
                 <td>{{item.EMPNO}}</td>
-                <td>{{item.ENAME}}</td>
+                <td>
+                    <a href="javascript:;" @click="fnView(item.EMPNO)">{{item.ENAME}}</a>
+                </td>
                 <td>{{item.JOB}}</td>
                 <td>{{item.SAL}}</td>
                 <td>{{item.DNAME}}</td>
@@ -45,7 +66,10 @@
                 <!-- 삭제하고자 하는 사람의 사번을 파라미터로 보낸다 -->
             </tr>
         </table>
+        <div>
         <a href="emp-edit.html"><button>추가</button></a>
+        <button @click="fnRemoveAll">선택삭제</button>
+        </div>
     </div>
 </body>
 </html>
@@ -55,7 +79,9 @@
         data() {
             return {
                 // 변수 - (key : value)
-                list : []
+                list : [],
+                deptNo : "",
+                selectItems : []
             };
         },
         methods: {
@@ -66,7 +92,7 @@
                     url: "http://localhost:3009/emp/list",
                     dataType: "json",
                     type: "GET",
-                    data: {},
+                    data: {deptNo : self.deptNo},
                     success: function (data) {
                         console.log(data);
                         self.list = data.empList;
@@ -97,6 +123,31 @@
             },
             fnEdit: function(empNo) {
                 location.href="emp-edit.html?empNo="+empNo;
+            },
+            fnView: function(empNo) {
+                window.open(`emp-view.html?empNo=${empNo}`, "view", "width=500, height=500");
+                // 2번째 파라미터는 팝업 이름. 이름을 지정하면 중복 팝업 방지
+            },
+            fnRemoveAll: function() {
+                let self = this;
+                console.log(self.selectItems);
+                if(!confirm("정말 삭제하시겠습니까")) {
+                    return;
+                }
+                $.ajax({
+                    url: "http://localhost:3009/emp/deleteAll",
+                    dataType: "json",
+                    type: "GET",
+                    data: {removeList : self.selectItems}, // 서버에 보내주는 값
+                    traditional : true, // list 형태로 서버에 보내주기 위한 기능
+                    success: function (data) {
+                        if(data.result == "success") {
+                            alert("삭제되었습니다");
+                            self.fnEmpList();
+                        }
+                    }
+                    // 서버 파일을 보면 넘어오는게 result : "success" 이다
+                });
             }
         }, // methods
         mounted() {

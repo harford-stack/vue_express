@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"
+        integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- vue + express 사용을 위해 위 2줄 필수 -->
+    <style>
+        table,
+        tr,
+        td,
+        th {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: burlywood;
+        }
+
+        tr:nth-child(even) {
+            background-color: beige;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app"> <!-- html 코드는 id가 app인 태그 안에서 작업 -->
+        <div id="chart"></div>
+    </div>
+</body>
+
+</html>
+
+<script>
+    const app = Vue.createApp({
+        data() {
+            return {
+                // 변수 - (key : value)
+                options: {
+                    series: [],
+                    chart: {
+                        width: 380,
+                        type: 'pie',
+                    },
+                    labels: [],
+                    responsive: [{
+                        breakpoint: 480,
+                        options: {
+                            chart: {
+                                width: 200
+                            },
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }]
+                }
+            };
+        },
+        methods: {
+            // 함수(메소드) - (key : function())
+            fnProfList: function () {
+                let self = this;
+                let param = {};
+                $.ajax({
+                    url: "http://localhost:3009/prof/list",
+                    dataType: "json",
+                    type: "GET",
+                    data: param,
+                    success: function (data) {
+                        console.log(data);
+                        // let payList = [];
+                        // let nameList = [];
+                        // for(let i=0; i<data.profList.length; i++) {
+                        //     payList.push(data.profList[i].PAY);
+                        //     nameList.push(data.profList[i].NAME);
+                        // }
+                        // self.options.series = payList;
+                        // self.options.labels = nameList;
+
+                        for(let i=0; i<data.profList.length; i++) {
+                            self.options.series.push(data.profList[i].PAY);
+                            self.options.labels.push(data.profList[i].NAME);
+                        }
+                        // 변수의 series와 labels의 리스트 값들을 비워두고
+                        // 바로 집어 넣으면 변수 선언을 덜 할 수 있음
+
+                        var chart = new ApexCharts(document.querySelector("#chart"), self.options);
+                        chart.render();
+                    }
+                });
+            }
+        }, // methods
+        mounted() {
+            // 처음 시작할 때 실행되는 부분
+            let self = this;
+            self.fnProfList();
+        }
+    });
+
+    app.mount('#app');
+</script>
