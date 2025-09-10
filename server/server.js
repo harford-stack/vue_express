@@ -324,6 +324,83 @@ app.get('/prof/update', async (req, res) => {
 });
 
 
+
+app.get('/lib/login', async (req, res) => {
+  const { userId, pwd } = req.query;
+  let query = `SELECT * FROM LIB_USERS WHERE USERID = '${userId}' AND PASSWORD = '${pwd}'`
+  try {
+    const result = await connection.execute(query);
+    const columnNames = result.metaData.map(column => column.name);
+
+    // 쿼리 결과를 JSON 형태로 변환
+    const rows = result.rows.map(row => {
+      // 각 행의 데이터를 컬럼명에 맞게 매핑하여 JSON 객체로 변환
+      const obj = {};
+      columnNames.forEach((columnName, index) => {
+        obj[columnName] = row[index];
+      });
+      return obj;
+    });
+    res.json(rows);
+  } catch (error) {
+    console.error('Error executing query', error);
+    res.status(500).send('Error executing query');
+  }
+});
+
+app.get('/lib/checkId', async (req, res) => {
+  const { userId } = req.query;
+  let query = `SELECT COUNT(*) AS COUNT FROM LIB_USERS WHERE USERID = '${userId}'`
+  try {
+    const result = await connection.execute(query);
+    const columnNames = result.metaData.map(column => column.name);
+
+    // 쿼리 결과를 JSON 형태로 변환
+    const rows = result.rows.map(row => {
+      // 각 행의 데이터를 컬럼명에 맞게 매핑하여 JSON 객체로 변환
+      const obj = {};
+      columnNames.forEach((columnName, index) => {
+        obj[columnName] = row[index];
+      });
+      return obj;
+    });
+    
+    // 중복 여부 확인 (COUNT가 0보다 크면 중복)
+    const isDuplicate = rows[0].COUNT > 0;
+    
+    // 클라이언트에 중복 여부 전송
+    res.json({ duplicate: isDuplicate });
+  } catch (error) {
+    console.error('Error executing query', error);
+    res.status(500).send('Error executing query');
+  }
+});
+
+app.get('/lib/join', async (req, res) => {
+  const { userId, pwd, name, email, phone, address } = req.query;
+  // 아이디 중복 확인
+  let query = ``
+  try {
+    const result = await connection.execute(query);
+    const columnNames = result.metaData.map(column => column.name);
+
+    // 쿼리 결과를 JSON 형태로 변환
+    const rows = result.rows.map(row => {
+      // 각 행의 데이터를 컬럼명에 맞게 매핑하여 JSON 객체로 변환
+      const obj = {};
+      columnNames.forEach((columnName, index) => {
+        obj[columnName] = row[index];
+      });
+      return obj;
+    });
+    res.json(rows);
+  } catch (error) {
+    console.error('Error executing query', error);
+    res.status(500).send('Error executing query');
+  }
+});
+
+
 // 서버 시작
 app.listen(3009, () => {
   console.log('Server is running on port 3009');

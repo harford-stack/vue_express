@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"
+        integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        table, tr, td, th {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px 10px;
+            text-align: center;
+        }
+        th {
+            background-color: burlywood;
+        }
+        tr:nth-child(even) {
+            background-color: beige;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app"> <!-- html 코드는 id가 app인 태그 안에서 작업 -->
+        <div>
+            <label>
+                아이디 : 
+                <input type="text" v-model="userId" id="userId_input" placeholder="아이디 입력">
+            </label>
+        </div>
+        <div>
+            <label>
+                비밀번호 : <input type="password" v-model="pwd" id="pwd_input" placeholder="비밀번호 입력">
+            </label>
+        </div>
+        <div>
+            <button @click="fnLogin">로그인</button>
+        </div>
+        <div>
+            아직 회원이 아니신가요?
+        </div>
+        <div>
+            <a href="LIB_Join.html"><button>회원가입하기</button></a>
+        </div>
+    </div>
+</body>
+
+</html>
+
+<script>
+    const app = Vue.createApp({
+        data() {
+            return {
+                // 변수 - (key : value)
+                userId : "",
+                pwd : ""
+            };
+        },
+        methods: {
+            // 함수(메소드) - (key : function())
+            fnLogin: function () {
+                let self = this;
+
+                // 아이디 입력 확인
+                if (!self.userId || self.userId.trim() === "") {
+                    // trim() => 문자열 양쪽 끝의 모든 공백(스페이스, 탭, 줄바꿈 등)을 제거
+                    alert("아이디를 입력해주세요");
+                    // 아이디 필드 포커스
+                    document.getElementById("userId_input").focus();
+                    return;
+                }
+                
+                // 비밀번호 입력 확인
+                if (!self.pwd || self.pwd.trim() === "") {
+                    alert("비밀번호를 입력해주세요");
+                    // 비번 필드 포커스
+                    document.getElementById("pwd_input").focus();
+                    return;
+                }
+
+                let param = {
+                    userId : self.userId.trim(),
+                    pwd : self.pwd.trim()
+                };
+                $.ajax({
+                    url: "http://localhost:3009/lib/login",
+                    dataType: "json",
+                    type: "GET",
+                    data: param,
+                    success: function (data) {
+                        if(data.length > 0) {
+                            // 로그인 성공
+                            alert(data[0].NAME + "님 환영합니다");
+                            sessionStorage.setItem("sessionId", data[0].USERID);
+                            // sessionStorage.setItem("sessionStatus", data[0].STATUS);
+                            // location.href=".html"
+                        } else {
+                            // 로그인 실패
+                            alert("아이디 또는 비밀번호를 확인해주세요");
+                            
+                            // 기존 입력 내용 지우기
+                            self.userId = "";
+                            self.pwd = "";
+
+                            // 아이디 필드 포커스
+                            document.getElementById("userId_input").focus();
+                        }
+                    }
+                });
+            }
+        }, // methods
+        mounted() {
+            // 처음 시작할 때 실행되는 부분
+            let self = this;
+        }
+    });
+
+    app.mount('#app');
+</script>
