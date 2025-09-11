@@ -369,7 +369,7 @@ app.get('/lib/checkId', async (req, res) => {
     const isDuplicate = rows[0].COUNT > 0;
     
     // 클라이언트에 중복 여부 전송
-    res.json({ duplicate: isDuplicate });
+    res.json({ duplicate : isDuplicate });
   } catch (error) {
     console.error('Error executing query', error);
     res.status(500).send('Error executing query');
@@ -400,6 +400,91 @@ app.get('/lib/join', async (req, res) => {
   }
 });
 
+
+
+app.get('/board/list', async (req, res) => {
+  const { pageSize, offset } = req.query;
+  
+  try {
+    const result = await connection.execute(
+      `SELECT B.*, TO_CHAR(CDATETIME, 'YYYY-MM-DD') AS CDATE FROM TBL_BOARD B `
+      + `OFFSET ${offset} ROWS FETCH NEXT ${pageSize} ROWS ONLY`
+    );
+    const columnNames = result.metaData.map(column => column.name);
+    // 쿼리 결과를 JSON 형태로 변환
+    const rows = result.rows.map(row => {
+      // 각 행의 데이터를 컬럼명에 맞게 매핑하여 JSON 객체로 변환
+      const obj = {};
+      columnNames.forEach((columnName, index) => {
+        obj[columnName] = row[index];
+      });
+      return obj;
+    });
+
+    const count = await connection.execute(
+      `SELECT COUNT(*) FROM TBL_BOARD`
+    );
+    // console.log(count.rows[0][0]); // rows 확인. 게시글이 총 몇개인지
+
+    // 리턴
+    res.json({
+        result : "success",
+        boardList : rows,
+        count : count.rows[0][0]
+    });
+  } catch (error) {
+    console.error('Error executing query', error);
+    res.status(500).send('Error executing query');
+  }
+});
+
+app.get('/board/add', async (req, res) => {
+  const { title, contents, userId, kind } = req.query;
+
+  try {
+    await connection.execute(
+      `INSERT INTO TBL_BOARD VALUES(B_SEQ.NEXTVAL, :title, :contents, :userId, 0, 0, :kind, SYSDATE, SYSDATE)`,
+      [title, contents, userId, kind], // 여기 넣어줌으로서 바로 윗줄에서 :입력이 가능하다
+      { autoCommit: true }
+    );
+    res.json({
+        result : "success"
+    });
+  } catch (error) {
+    console.error('데이터 삽입 오류 발생:', error.message);
+    console.error('Error executing delete', error);
+    res.status(500).send('Error executing delete');
+  }
+});
+
+app.get('/board/view', async (req, res) => {
+  const { boardNo } = req.query;
+  
+  try {
+    const result = await connection.execute(
+      `SELECT B.*, TO_CHAR(CDATETIME, 'YYYY-MM-DD') AS CDATE FROM TBL_BOARD B `
+      + `WHERE BOARDNO = ${boardNo}`
+    );
+    const columnNames = result.metaData.map(column => column.name);
+    // 쿼리 결과를 JSON 형태로 변환
+    const rows = result.rows.map(row => {
+      // 각 행의 데이터를 컬럼명에 맞게 매핑하여 JSON 객체로 변환
+      const obj = {};
+      columnNames.forEach((columnName, index) => {
+        obj[columnName] = row[index];
+      });
+      return obj;
+    });
+    // 리턴
+    res.json({
+        result : "success",
+        info : rows[0]
+    });
+  } catch (error) {
+    console.error('Error executing query', error);
+    res.status(500).send('Error executing query');
+  }
+});
 
 // 서버 시작
 app.listen(3009, () => {

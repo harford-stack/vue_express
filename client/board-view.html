@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- vue + express 사용을 위해 위 2줄 필수 -->
+    <style>
+        table, tr, td, th {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px 10px;
+            text-align: center;
+        }
+        th {
+            background-color: burlywood;
+        }
+        tr:nth-child(even) {
+            background-color: beige;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"> <!-- html 코드는 id가 app인 태그 안에서 작업 -->
+        <div id="container">
+            <table>
+                <tr>
+                    <th>제목</th>
+                    <td>{{info.TITLE}}</td>
+                </tr>
+                <tr>
+                    <th>작성자</th>
+                    <td>{{info.USERID}}</td>
+                </tr>
+                <tr>
+                    <th>조회수</th>
+                    <td>{{info.CNT}}</td>
+                </tr>
+                <tr>
+                    <th>작성일</th>
+                    <td>{{info.CTIME}}</td>
+                </tr>
+                <tr>
+                    <th>내용1</th>
+                    <td>{{info.CONTENTS}}</td>
+                </tr>
+                <tr>
+                    <th>내용2</th>
+                    <td v-html="info.CONTENTS"></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+
+<script>
+    const app = Vue.createApp({
+        data() {
+            return {
+                // 변수 - (key : value)
+                boardNo : "",
+                info : {}
+            };
+        },
+        methods: {
+            // 함수(메소드) - (key : function())
+            fnBoardInfo: function () {
+                let self = this;
+                let param = {
+                    boardNo : self.boardNo
+                };
+                $.ajax({
+                    url: "http://localhost:3009/board/view",
+                    dataType: "json",
+                    type: "GET",
+                    data: param,
+                    success: function (data) {
+                        console.log(data[0]);
+                        self.info = data.info;
+                    }
+                });
+            }
+        }, // methods
+        mounted() {
+            // 처음 시작할 때 실행되는 부분
+            let self = this;
+            const queryParams = new URLSearchParams(window.location.search);
+            self.boardNo = queryParams.get('boardNo') || '';
+            console.log("boardNo ==> ", self.boardNo);
+
+            self.fnBoardInfo();
+        }
+    });
+
+    app.mount('#app');
+</script>

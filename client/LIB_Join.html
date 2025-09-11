@@ -53,7 +53,7 @@
             </label>
         </div>
         <div>
-            E-MAIL(이메일) : 
+            E-MAIL(이메일) <span class="required-indicator">*</span> : 
             <input type="text" v-model="emailId" placeholder="이메일 아이디 입력"> @
             <input type="text" v-model="emailDomain" :disabled="selectedDomain !== 'direct'">
             <select v-model="selectedDomain" @change="handleDomainChange">
@@ -64,7 +64,8 @@
             </select>
         </div>
         <div>
-            핸드폰 번호 : <input type="text" placeholder="(-) 하이픈 제외 숫자만 입력">
+            핸드폰 번호 <span class="required-indicator">*</span> : 
+            <input type="text" v-model="phone" id="phoneInput" required placeholder="(-) 하이픈 제외 숫자만 입력">
         </div>
         <div>
             주소 : <input type="text">
@@ -81,16 +82,17 @@
         data() {
             return {
                 // 변수 - (key : value)
-                userId: "",         // 아이디 추가
-                userPwd: "",        // 비밀번호 추가
-                userPwdConfirm: "", // 비밀번호 확인 추가
-                userName: "",       // 이름 추가
-                emailId: "",        // 이메일 아이디
-                emailDomain: "",    // 이메일 도메인
-                selectedDomain: "direct",  // 선택된 도메인
-                phone: "",          // 핸드폰 번호 추가
-                address: "",        // 주소 추가
-                isUserIdDisabled : false // 아이디 입력란 비활성화 여부 (초기값: 활성화)
+                userId : "",         // 아이디 추가
+                userPwd : "",        // 비밀번호 추가
+                userPwdConfirm : "", // 비밀번호 확인 추가
+                userName : "",       // 이름 추가
+                emailId : "",        // 이메일 아이디
+                emailDomain : "",    // 이메일 도메인
+                selectedDomain : "direct",  // 선택된 도메인
+                phone : "",          // 핸드폰 번호 추가
+                address : "",        // 주소 추가
+                isUserIdDisabled : false, // 아이디 입력란 비활성화 여부 (초기값: 활성화)
+                isIdDuplicationChecked : false // 아이디 중복확인 완료 여부 (초기값: false)
             };
         },
         methods: {
@@ -108,6 +110,31 @@
                     // 특정 도메인 선택 시 해당 값 자동 입력
                     self.emailDomain = self.selectedDomain;
                 }
+            },
+            // 전화번호 형식 변환 함수
+            // rawPhoneNumber: 하이픈 제외된 숫자만 있는 문자열
+            formatPhoneNumber: function(rawPhoneNumber) {
+                if (!rawPhoneNumber) return ""; // 입력값이 없으면 빈 문자열 반환
+
+                // 숫자 외의 모든 문자 제거
+                const cleaned = rawPhoneNumber.replace(/[^0-9]/g, '');
+                let result = cleaned; // 기본값은 숫자만 있는 상태
+
+                // 한국 휴대폰 번호 (010으로 시작하고 11자리) 형식에 맞춰 변환
+                // 예: 01012345678 -> 010-1234-5678
+                if (cleaned.length === 11 && cleaned.startsWith('010')) {
+                    result = cleaned.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+                } 
+                // 10자리 번호 (02-xxxx-xxxx 또는 0XX-xxx-xxxx)
+                else if (cleaned.length === 10) {
+                    if (cleaned.startsWith('02')) { // 서울 번호 (02-xxxx-xxxx)
+                        result = cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
+                    } else { // 일반 지역번호 (0XX-xxx-xxxx)
+                        result = cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+                    }
+                }
+
+                return result;
             },
             // 아이디 중복 확인 메소드
             fnCheckId: function() {
@@ -129,12 +156,13 @@
                     success: function(data) {
                         if(data.duplicate) {
                             alert("이미 사용 중인 아이디입니다. 다른 아이디를 입력해주세요.");
-                            self.isUserIdDisabled = false;
-                            // 중복이면 다시 활성화 상태로
+                            self.isIdDuplicationChecked = false; // 중복이면 체크 안 된 상태
+                            self.isUserIdDisabled = false; // 아이디 입력 필드 다시 활성화 (새 아이디 입력 유도)
                             document.getElementById("userId_input").focus();
                             // 다시 아이디 입력 필드로 포커스
                         } else {
                             alert("사용 가능한 아이디입니다.");
+                            self.isIdDuplicationChecked = true; // 아이디 사용 가능 -> 체크 완료!
                             self.isUserIdDisabled = true; // 아이디 입력 부분 비활성화
 
                             // 비밀번호 입력란에 포커스
@@ -144,6 +172,7 @@
                     },
                     error: function(xhr, status, error) {
                         alert("중복 확인 중 오류가 발생했습니다. 다시 시도해주세요.");
+                        self.isIdDuplicationChecked = false; // 오류 발생 시 체크 안 된 상태
                         console.error(error);
                     }
                 });
@@ -151,9 +180,18 @@
             fnRegister: function() {
                 let self = this;
 
+                // 아이디 중복확인 여부 검사
+                if (!self.isIdDuplicationChecked) {
+                    alert("아이디 중복확인을 먼저 해주세요.");
+                    document.getElementById("userId_input").focus(); // 아이디 입력란으로 포커스
+                    return;
+                }
+
                 // 필수 입력값 검증
                 if(!self.userId || self.userId.trim() === "") {
                     alert("아이디를 입력해주세요");
+                    self.isIdDuplicationChecked = false; // 아이디 비어있으면 체크 초기화
+                    document.getElementById('userId_input').focus();
                     return;
                 }
                 if(!self.userPwd || self.userPwd.trim() === "") {
@@ -168,6 +206,7 @@
                 const pwdRule = /^(?=.*[a-z])(?=.*\d)[a-z\d]{6,}$/;
                 if(!pwdRule.test(self.userPwd)) {
                     alert("비밀번호는 영어 소문자와 숫자를 포함하여 6자리 이상이어야 합니다");
+                    document.getElementById("userPwd_input").focus();
                     return;
                 }
                 if(self.userPwd !== self.userPwdConfirm) {
@@ -178,11 +217,35 @@
                     alert("이름을 입력해주세요");
                     return;
                 }
-
+                if(!self.emailId || self.emailId.trim() === "") {
+                    alert("이메일 아이디를 입력해주세요");
+                    return;
+                }
+                if(!self.emailDomain || self.emailDomain.trim() === "") {
+                    alert("이메일 도메인을 선택하거나 입력해주세요");
+                    return;
+                }
                 // 이메일 조합
-                let email = "";
-                if(self.emailId && self.emailDomain) {
-                    email = self.emailId + "@" + self.emailDomain;
+                let email = self.emailId.trim() + "@" + self.emailDomain.trim();
+
+                // 이메일 형식 유효성 검사
+                const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+                if(!emailRegex.test(email)) {
+                    alert("올바른 이메일 형식이 아닙니다");
+                    return;
+                }
+                // 핸드폰 번호 입력 확인
+                if(!self.phone || self.phone.trim() === "") {
+                    alert("핸드폰 번호를 입력해주세요");
+                    document.getElementById("phoneInput").focus();
+                    return;
+                }
+                // 핸드폰 번호 형식 확인 (숫자만 입력했는지)
+                const phoneDigitsOnlyRegex = /^[0-9]+$/;
+                if(!phoneDigitsOnlyRegex.test(self.phone.trim())) {
+                    alert("핸드폰 번호는 숫자만 입력해주세요");
+                    document.getElementById("phoneInput").focus();
+                    return;
                 }
 
                 // 서버로 전송할 데이터
@@ -191,10 +254,14 @@
                     password: self.userPwd.trim(),
                     name: self.userName.trim(),
                     email: email,
-                    phone: self.phone,
+                    phone: self.formatPhoneNumber(self.phone),
+                    // trim() 불필요한 이유 : 위의 이메일 조합과 핸드폰번호 형식 확인의
+                    // self.formatPhoneNumber(self.phone) 함수 내부에서
+                    // 이미 불필요한 공백을 포함한 숫자 외의 모든 문자를 제거하고 있음
                     address: self.address
                 };
 
+                // 서버에 회원가입 요청
                 $.ajax({
                     url: "http://localhost:3009/lib/join",
                     dataType: "json",
@@ -205,7 +272,7 @@
                             // 회원가입 성공
                             alert("회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.");
                             // 로그인 페이지로 이동 (필요시 수정)
-                            // location.href = "login.html";
+                            location.href = "LIB-Login.html";
                         } else {
                             // 회원가입 실패
                             alert(data.message || "회원가입에 실패했습니다. 다시 시도해주세요.");
