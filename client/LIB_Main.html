@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스터디카페 메인</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        p { color: #666; }
+        button { padding: 10px 20px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button.primary { background-color: #007bff; color: white; }
+        button.secondary { background-color: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <!-- 로그인 상태에 따라 다른 메시지 표시 -->
+        <h1 v-if="sessionId">환영합니다, {{ userName }}님!</h1>
+        <h1 v-else>환영합니다!</h1>
+        <p>스터디카페 좌석 예약 시스템에 오신 것을 환영합니다.</p>
+        <p>어떤 서비스를 이용하시겠어요?</p>
+
+        <div>
+            <!-- 로그인 여부에 따라 버튼 다르게 표시 -->
+            <template v-if="sessionId">
+                <button class="primary" @click="goToMyPage">회원정보 수정</button>
+                <button class="secondary" @click="logout">로그아웃</button>
+            </template>
+            <template v-else>
+                <button class="primary" @click="goToLoginPage">로그인</button>
+                <button class="secondary" @click="goToJoinPage">회원가입</button>
+            </template>
+            <button class="primary" @click="goToSeatBooking">좌석 예약 (준비중)</button>
+        </div>
+    </div>
+
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    userName: "",
+                    sessionId: ""
+                };
+            },
+            methods: {
+                logout: function() {
+                    sessionStorage.removeItem("sessionId");
+                    sessionStorage.removeItem("sessionName");
+                    alert("로그아웃 되었습니다.");
+                    // 로그아웃 후 페이지를 새로고침하여 비로그인 상태 UI 표시
+                    window.location.reload(); 
+                },
+                goToMyPage: function() {
+                    location.href = "LIB_MyPage.html";
+                },
+                goToSeatBooking: function() {
+                    alert("좌석 예약 기능은 준비 중입니다!");
+                    // location.href = "LIB_SeatBooking.html";
+                },
+                goToLoginPage: function() {
+                    location.href = "LIB_Login.html"; // 로그인 페이지로 이동
+                },
+                goToJoinPage: function() {
+                    location.href = "LIB_Join.html"; // 회원가입 페이지로 이동
+                }
+            },
+            mounted() {
+                // 페이지 로드 시 세션 스토리지에서 사용자 정보 가져오기
+                this.sessionId = sessionStorage.getItem("sessionId");
+                this.userName = sessionStorage.getItem("sessionName");
+                // 이제 로그인 여부에 따라 리다이렉트하지 않음
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>

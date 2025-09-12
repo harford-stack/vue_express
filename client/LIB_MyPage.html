@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원정보 수정</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin-top: 50px; display: flex; justify-content: center; align-items: center; min-height: 80vh; background-color: #f4f4f4; }
+        .container { background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h2 { text-align: center; margin-bottom: 30px; color: #333; }
+        div { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="text"], input[type="password"], input[type="email"], select { width: calc(100% - 22px); padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
+        input[disabled] { background-color: #e9ecef; }
+        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; background-color: #007bff; color: white; margin-right: 10px; }
+        button:last-child { margin-right: 0; }
+        .button-group { text-align: center; margin-top: 20px; }
+        .required-indicator { color: red; margin-left: 5px; }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <h2>회원정보 수정</h2>
+
+        <div>
+            <label>아이디: 
+                <input type="text" v-model="userId" disabled>
+            </label>
+        </div>
+        <div>
+            <label>이름 <span class="required-indicator">*</span>: 
+                <input type="text" v-model="userName">
+            </label>
+        </div>
+        <div>
+            <label>E-MAIL(이메일) <span class="required-indicator">*</span>: </label>
+            <input type="text" v-model="emailId" style="width: calc(50% - 15px); display: inline-block;"> @
+            <input type="text" v-model="emailDomain" :disabled="selectedDomain !== 'direct'" style="width: calc(40% - 15px); display: inline-block;">
+            <select v-model="selectedDomain" @change="handleDomainChange" style="width: calc(10% + 5px); display: inline-block; vertical-align: top; margin-left: -5px;">
+                <option value="direct">직접 입력</option>
+                <option value="naver.com">naver.com</option>
+                <option value="gmail.com">gmail.com</option>
+                <option value="daum.net">daum.net</option>
+            </select>
+        </div>
+        <div>
+            <label>핸드폰 번호 <span class="required-indicator">*</span>: 
+                <input type="text" v-model="phone" placeholder="(-) 하이픈 제외 숫자만 입력">
+            </label>
+        </div>
+        <div>
+            <label>주소: </label>
+            <input type="text" v-model="address" placeholder="주소를 검색해주세요." readonly>
+            <button @click="fnAddr" style="width: auto; padding: 8px 15px;">주소 검색</button>
+        </div>
+
+        <div class="password-section">
+            <h3>비밀번호 변경</h3>
+            <div>
+                <label>기존 비밀번호 <span class="required-indicator">*</span>: 
+                    <input type="password" v-model="currentPassword" placeholder="현재 비밀번호를 입력하세요">
+                </label>
+            </div>
+            <div>
+                <label>새 비밀번호 <span class="required-indicator">*</span>: 
+                    <input type="password" v-model="newPassword" placeholder="영어 소문자/숫자 포함 6자리 이상">
+                </label>
+            </div>
+            <div>
+                <label>새 비밀번호 확인 <span class="required-indicator">*</span>: 
+                    <input type="password" v-model="confirmNewPassword" placeholder="새 비밀번호를 다시 입력하세요">
+                </label>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button @click="fnUpdateUser">정보 저장</button>
+            <button @click="goToMain">메인으로</button>
+            <button @click="fnWithdraw" style="background-color: #dc3545;">회원 탈퇴</button>
+        </div>
+        <p style="margin-top: 20px; color: #888; font-size: 0.9em;">* 기존 비밀번호를 입력해야 회원 정보 및 비밀번호 변경이 가능합니다.</p>
+    </div>
+    </div>
+
+    <script>
+        // jusoCallBack 함수는 전역 함수로 LIB_JusoPopup.html에서 호출됨
+        // 이 함수가 Vue 앱 인스턴스의 address 데이터를 업데이트하도록 수정 필요
+        function jusoCallBack(roadFullAddr, roadAddrPart1, addrDetail, roadAddrPart2, engAddr, jibunAddr, zipNo, admCd, rnMgtSn, bdMgtSn, detBdNmList, bdNm, bdKdcd, siNm, sggNm, emdNm, liNm, rn, udrtYn, buldMnnm, buldSlno, mtYn, lnbrMnnm, lnbrSlno, emdNo) {
+            // Vue 앱 인스턴스에 접근하여 데이터 업데이트
+            // app._instance.data 또는 app.config.globalProperties 등을 통해 접근 가능 (Vue 3 방식)
+            // 더 안전하게는 이벤트를 발행하여 Vue 인스턴스가 받도록 하는 것이 좋음
+            if (window.vueMyPageApp) { // window.vueMyPageApp은 Vue 인스턴스가 마운트된 후 할당될 전역 변수
+                window.vueMyPageApp.address = roadFullAddr;
+            }
+        }
+
+        const app = Vue.createApp({
+            data() {
+                return {
+                    userId: "",
+                    userName: "",
+                    userPwd: "",
+                    emailId: "",
+                    emailDomain: "",
+                    selectedDomain: "direct",
+                    phone: "",
+                    address: "",
+                    currentPassword: "", // 기존 비밀번호
+                    newPassword: "",     // 새 비밀번호
+                    confirmNewPassword: "" // 새 비밀번호 확인
+                };
+            },
+            methods: {
+                // 이메일 도메인 선택 처리 (LIB_Join.html과 동일)
+                handleDomainChange: function() {
+                    let self = this;
+                    if(self.selectedDomain === 'direct') {
+                        self.emailDomain = '';
+                    } else {
+                        self.emailDomain = self.selectedDomain;
+                    }
+                },
+                // 전화번호 형식 변환 함수 (LIB_Join.html과 동일)
+                formatPhoneNumber: function(rawPhoneNumber) {
+                    if (!rawPhoneNumber) return "";
+                    const cleaned = rawPhoneNumber.replace(/[^0-9]/g, '');
+                    let result = cleaned;
+                    if (cleaned.length === 11 && cleaned.startsWith('010')) {
+                        result = cleaned.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+                    } else if (cleaned.length === 10) {
+                        if (cleaned.startsWith('02')) {
+                            result = cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
+                        } else {
+                            result = cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+                        }
+                    }
+                    return result;
+                },
+                // 주소 검색 팝업 (LIB_Join.html과 동일)
+                fnAddr: function() {
+                    window.open("LIB_JusoPopup.html", "addr", "width=500, height=500");
+                },
+                // 현재 사용자 정보 불러오기
+                loadUserInfo: function() {
+                    let self = this;
+                    const loggedInUserId = sessionStorage.getItem("sessionId");
+
+                    if (!loggedInUserId) {
+                        alert("로그인이 필요합니다.");
+                        location.href = "LIB_Login.html";
+                        return;
+                    }
+                    self.userId = loggedInUserId;
+
+                    $.ajax({
+                        url: "http://localhost:3009/lib/userInfo",
+                        dataType: "json",
+                        type: "GET",
+                        data: { userId: loggedInUserId },
+                        success: function(data) {
+                            if(data) { // data가 있을 때만 처리 (null 또는 undefined 체크)
+                                self.userName = data.NAME;
+                                self.phone = data.PHONE ? data.PHONE.replace(/-/g, '') : '';
+                                self.address = data.ADDRESS;
+
+                                // 이메일 분리하여 바인딩
+                                if (data.EMAIL) {
+                                    const emailParts = data.EMAIL.split('@');
+                                    self.emailId = emailParts[0] || '';
+                                    self.emailDomain = emailParts[1] || '';
+                                    
+                                    // 도메인 선택값 설정
+                                    if (self.emailDomain === 'naver.com' || self.emailDomain === 'gmail.com' || self.emailDomain === 'daum.net') {
+                                        self.selectedDomain = self.emailDomain;
+                                    } else {
+                                        self.selectedDomain = 'direct';
+                                    }
+                                }
+                            } else {
+                                alert("사용자 정보를 불러오는데 실패했습니다.");
+                                location.href = "LIB_Main.html";
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            alert("사용자 정보를 불러오는 중 오류가 발생했습니다.");
+                            console.error(error);
+                            location.href = "LIB_Main.html";
+                        }
+                    });
+                },
+                // 사용자 정보 업데이트
+                fnUpdateUser: function() {
+                    let self = this;
+                    const pwdRule = /^(?=.*[a-z])(?=.*\d)[a-z\d]{6,}$/;
+
+                    // 유효성 검사 (LIB_Join.html과 유사)
+                    if(!self.userName || self.userName.trim() === "") {
+                        alert("이름을 입력해주세요");
+                        return;
+                    }
+                    if(!self.emailId || self.emailId.trim() === "") {
+                        alert("이메일 아이디를 입력해주세요");
+                        return;
+                    }
+                    if(!self.emailDomain || self.emailDomain.trim() === "") {
+                        alert("이메일 도메인을 선택하거나 입력해주세요");
+                        return;
+                    }
+                    let email = self.emailId.trim() + "@" + self.emailDomain.trim();
+                    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+                    if(!emailRegex.test(email)) {
+                        alert("올바른 이메일 형식이 아닙니다");
+                        return;
+                    }
+                    if(!self.phone || self.phone.trim() === "") {
+                        alert("핸드폰 번호를 입력해주세요");
+                        return;
+                    }
+                    const phoneDigitsOnlyRegex = /^[0-9]+$/;
+                    if(!phoneDigitsOnlyRegex.test(self.phone.trim())) {
+                        alert("핸드폰 번호는 숫자만 입력해주세요");
+                        return;
+                    }
+
+                    // 기존 비밀번호 입력 확인
+                    if (!self.currentPassword || self.currentPassword.trim() === "") {
+                        alert("회원 정보를 수정하려면 기존 비밀번호를 입력해야 합니다.");
+                        return;
+                    }
+
+                    // 새 비밀번호가 입력되었다면 유효성 검사
+                    if (self.newPassword.trim() !== "") {
+                        if (!pwdRule.test(self.newPassword)) {
+                            alert("새 비밀번호는 영어 소문자와 숫자를 포함하여 6자리 이상이어야 합니다");
+                            return;
+                        }
+                        if (self.newPassword !== self.confirmNewPassword) {
+                            alert("새 비밀번호가 일치하지 않습니다");
+                            return;
+                        }
+                    }
+
+                    // 서버로 전송할 데이터
+                    let param = {
+                        userId: self.userId, // USERID는 수정 불가
+                        name: self.userName.trim(),
+                        email: email,
+                        phone: self.phone.replace(/-/g, ''), // DB 저장을 위해 하이픈 제거
+                        address: self.address,
+                        currentPassword: self.currentPassword.trim(), // 기존 비밀번호 전송
+                        newPassword: self.newPassword.trim() // 새 비밀번호 전송 (입력되지 않았다면 빈 문자열)
+                    };
+
+                    $.ajax({
+                        url: "http://localhost:3009/lib/updateUserInfo",
+                        dataType: "json",
+                        type: "GET", // 학원 지침에 따라 GET 사용 (UPDATE는 POST가 일반적)
+                        data: param,
+                        success: function(data) {
+                            if(data.success) {
+                                alert(data.message); // 서버에서 전달받은 메시지 사용
+                                self.loadUserInfo(); // 수정된 정보 다시 불러와 반영
+                                self.currentPassword = ""; // 비밀번호 필드 초기화
+                                self.newPassword = "";
+                                self.confirmNewPassword = "";
+                            } else {
+                                alert(data.message || "회원 정보 수정에 실패했습니다.");
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            alert("회원 정보 수정 중 오류가 발생했습니다.");
+                            console.error(error);
+                        }
+                    });
+                },
+                goToMain: function() {
+                    location.href = "LIB_Main.html"; // 메인 페이지로 이동
+                },
+                fnWithdraw: function() {
+                    let self = this;
+                    
+                    // 탈퇴 확인 메시지
+                    if (!confirm("정말 탈퇴하시겠습니까? 모든 회원 정보가 삭제됩니다.")) {
+                        return; // 취소 시 함수 종료
+                    }
+                    
+                    // 비밀번호 확인
+                    if (!self.currentPassword || self.currentPassword.trim() === "") {
+                        alert("회원 탈퇴를 위해서는 현재 비밀번호를 입력해야 합니다.");
+                        return;
+                    }
+                    
+                    // 서버에 탈퇴 요청 전송
+                    $.ajax({
+                        url: "http://localhost:3009/lib/withdraw",
+                        dataType: "json",
+                        type: "GET", // 학원 지침에 따라 GET 사용 (보안상 POST 권장)
+                        data: {
+                            userId: self.userId,
+                            password: self.currentPassword.trim()
+                        },
+                        success: function(data) {
+                            if(data.success) {
+                                alert("회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.");
+                                
+                                // 세션 삭제
+                                sessionStorage.removeItem("sessionId");
+                                sessionStorage.removeItem("sessionName");
+                                
+                                // 메인 페이지로 리다이렉트
+                                location.href = "LIB_Main.html";
+                            } else {
+                                alert(data.message || "회원 탈퇴에 실패했습니다.");
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            alert("회원 탈퇴 중 오류가 발생했습니다.");
+                            console.error(error);
+                        }
+                    });
+                }
+            },
+            mounted() {
+                // Vue 인스턴스가 마운트될 때 전역 변수에 할당 (jusoCallBack에서 접근 위함)
+                window.vueMyPageApp = this; 
+                this.loadUserInfo(); // 페이지 로드 시 사용자 정보 불러오기
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>

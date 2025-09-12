@@ -41,6 +41,10 @@
             <button @click="fnLogin">로그인</button>
         </div>
         <div>
+            <a href="LIB_FindId.html">아이디 찾기</a> | 
+            <a href="LIB_FindPwd.html">비밀번호 찾기</a>
+        </div>
+        <div>
             아직 회원이 아니신가요?
         </div>
         <div>
@@ -96,8 +100,8 @@
                             // 로그인 성공
                             alert(data[0].NAME + "님 환영합니다");
                             sessionStorage.setItem("sessionId", data[0].USERID);
-                            // sessionStorage.setItem("sessionStatus", data[0].STATUS);
-                            // location.href=".html"
+                            sessionStorage.setItem("sessionName", data[0].NAME);
+                            location.href="LIB_Main.html"
                         } else {
                             // 로그인 실패
                             alert("아이디 또는 비밀번호를 확인해주세요");

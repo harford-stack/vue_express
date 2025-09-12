@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아이디 찾기</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h2>아이디 찾기</h2>
+        <p>회원가입 시 입력한 이름과 이메일을 입력하시면 아이디를 찾을 수 있습니다.</p>
+        
+        <div>
+            <label>
+                이름 : <input type="text" v-model="userName" placeholder="이름 입력">
+            </label>
+        </div>
+        <div>
+            <label>
+                이메일 : <input type="text" v-model="userEmail" placeholder="이메일 입력">
+            </label>
+        </div>
+        <div>
+            <button @click="fnFindId">아이디 찾기</button>
+        </div>
+        <div v-if="foundId">
+            <p>회원님의 아이디는 <strong>{{ maskedId }}</strong> 입니다.</p>
+        </div>
+        <div>
+            <a href="LIB_Login.html">로그인 페이지로 돌아가기</a>
+        </div>
+    </div>
+</body>
+</html>
+
+<script>
+    const app = Vue.createApp({
+        data() {
+            return {
+                userName: "",
+                userEmail: "",
+                foundId: "",
+                maskedId: ""
+            };
+        },
+        methods: {
+            fnFindId: function() {
+                let self = this;
+                
+                // 입력값 검증
+                if(!self.userName || self.userName.trim() === "") {
+                    alert("이름을 입력해주세요");
+                    return;
+                }
+                
+                if(!self.userEmail || self.userEmail.trim() === "") {
+                    alert("이메일을 입력해주세요");
+                    return;
+                }
+                
+                // 서버에 아이디 찾기 요청
+                $.ajax({
+                    url: "http://localhost:3009/lib/findId",
+                    dataType: "json",
+                    type: "GET",
+                    data: {
+                        name: self.userName.trim(),
+                        email: self.userEmail.trim()
+                    },
+                    success: function(data) {
+                        if(data && data.userId) {
+                            // 아이디 찾기 성공
+                            self.foundId = data.userId;
+                            // 아이디 일부 마스킹 처리 (예: abcde -> ab***)
+                            const len = self.foundId.length;
+                            const visiblePart = self.foundId.substring(0, Math.min(3, len));
+                            const maskedPart = '*'.repeat(len - Math.min(3, len));
+                            self.maskedId = visiblePart + maskedPart;
+                        } else {
+                            // 아이디 찾기 실패
+                            alert("입력하신 정보와 일치하는 회원 정보가 없습니다.");
+                            self.foundId = "";
+                            self.maskedId = "";
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        alert("오류가 발생했습니다. 다시 시도해주세요.");
+                        console.error(error);
+                    }
+                });
+            }
+        }
+    });
+
+    app.mount('#app');
+</script>
