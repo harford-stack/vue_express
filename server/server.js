@@ -599,6 +599,148 @@ app.get('/lib/withdraw', async (req, res) => {
   }
 });
 
+// 1. 좌석 유형 정보 조회 (GET /seattypes)
+app.get('/seattypes', async (req, res) => {
+  try {
+    const result = await connection.execute(
+      `SELECT TYPENO, TYPENAME, PRICE, DESCRIPTION FROM LIB_SEAT_TYPES ORDER BY TYPENO`
+    );
+    // Oracle 클라이언트 기본 fetch type이 ORACLEDB.FETCH_ARRAY 일 경우
+    // result.rows가 배열의 배열 형태로 반환됩니다.
+    res.json(result.rows); 
+  } catch (err) {
+    console.error('Error fetching seat types:', err);
+    res.status(500).json({ success: false, message: '좌석 유형 정보를 불러오는데 실패했습니다.' });
+  }
+});
+
+// 2. 특정 날짜/시간의 좌석 정보 및 예약 상태 조회 (GET /seats)
+app.get('/seats', async (req, res) => {
+  try {
+    const { date: selectedDate, startHour, endHour } = req.query; // 날짜, 시작 시간, 종료 시간 받기
+
+    if (!selectedDate || !startHour || !endHour) {
+      return res.status(400).json({ success: false, message: '날짜, 시작 시간, 종료 시간을 모두 지정해야 합니다.' });
+    }
+
+    // 1. 모든 좌석 정보 가져오기
+    const allSeatsResult = await connection.execute(
+      `SELECT 
+          s.SEATNO, 
+          s.TYPENO, 
+          s.CAPACITY, 
+          s.SEATSTATUS, 
+          s.LOCATION, 
+          s.SEAT_NOTES
+       FROM LIB_SEATS s
+       ORDER BY s.SEATNO`
+    );
+
+    let allSeats = allSeatsResult.rows;
+
+    // 2. 해당 날짜/시간에 예약된 좌석 정보 가져오기
+    const reservedSeatsResult = await connection.execute(
+      `SELECT DISTINCT SEATNO
+       FROM LIB_RESERVATIONS
+       WHERE RESVDATE = TO_DATE(:selectedDate, 'YYYY-MM-DD')
+         AND RESVSTATUS = 'CONFIRMED'
+         AND (
+              (START_HOUR < :endHour AND END_HOUR > :startHour) -- 예약 시간이 겹치는 경우
+              OR
+              (START_HOUR = :startHour AND END_HOUR = :endHour) -- 정확히 같은 시간대에 예약이 있는 경우
+         )`,
+      {
+        selectedDate: selectedDate,
+        startHour: parseInt(startHour), // 숫자로 변환
+        endHour: parseInt(endHour)     // 숫자로 변환
+      }
+    );
+
+    const reservedSeatNumbers = reservedSeatsResult.rows.map(row => row[0]); // 예약된 좌석 번호들
+
+    // 3. 모든 좌석 정보에 예약 상태 반영
+    const finalSeats = allSeats.map(seat => {
+      const seatno = seat[0];
+      const currentStatus = seat[3]; // 기존 seatstatus
+      // 예약된 좌석 번호 목록에 현재 좌석이 포함되어 있고, 상태가 'AVAILABLE'이 아니면 'OCCUPIED'로 변경
+      if (reservedSeatNumbers.includes(seatno)) {
+        // 예약이 이미 있다면 'OCCUPIED'로 표시
+        return [seat[0], seat[1], seat[2], 'OCCUPIED', seat[4], seat[5]];
+      } else {
+        // 예약이 없으면 원래 상태 유지 ('AVAILABLE'이거나 다른 상태일 수 있음)
+        return seat;
+      }
+    });
+
+    res.json(finalSeats);
+  } catch (err) {
+    console.error('Error fetching seats:', err);
+    res.status(500).json({ success: false, message: '좌석 정보를 불러오는데 실패했습니다.' });
+  }
+});
+
+// 3. 좌석 예약 처리 (GET /reservation)
+app.get('/reservation', async (req, res) => {
+  try {
+    // 클라이언트에서 전송된 데이터
+    const { userId, seatNo, resvDate, startHour, endHour, totalPrice } = req.query;
+
+    // 필수 값 검증
+    if (!userId || !seatNo || !resvDate || startHour == null || endHour == null || totalPrice == null) {
+      return res.status(400).json({ success: false, message: '필수 예약 정보가 누락되었습니다.' });
+    }
+
+    // 해당 시간대에 해당 좌석이 이미 예약되었는지 확인하는 로직 (클라이언트에서 한 번 더 최종 확인)
+    const checkReservation = await connection.execute(
+      `SELECT COUNT(*) AS CNT
+       FROM LIB_RESERVATIONS
+       WHERE SEATNO = :seatNo
+         AND RESVDATE = TO_DATE(:resvDate, 'YYYY-MM-DD')
+         AND (
+              (START_HOUR < :endHour AND END_HOUR > :startHour)
+              OR
+              (START_HOUR = :startHour AND END_HOUR = :endHour)
+         )
+         AND RESVSTATUS = 'CONFIRMED'`,
+      { 
+          seatNo: seatNo, 
+          resvDate: resvDate,
+          startHour: parseInt(startHour), // 숫자로 변환
+          endHour: parseInt(endHour)     // 숫자로 변환
+      }
+    );
+
+    if (checkReservation.rows[0][0] > 0) {
+      return res.status(409).json({ success: false, message: '해당 시간대에 이미 예약된 좌석입니다. 다시 선택해주세요.' });
+    }
+
+    // 예약 정보 삽입
+    const result = await connection.execute(
+      `INSERT INTO LIB_RESERVATIONS (RESVNO, USERID, SEATNO, RESVDATE, START_HOUR, END_HOUR, TOTALPRICE, RESVSTATUS)
+       VALUES (SEQ_RESERVATION.NEXTVAL, :userId, :seatNo, TO_DATE(:resvDate, 'YYYY-MM-DD'), :startHour, :endHour, :totalPrice, 'CONFIRMED')`, // RESVSTATUS 추가
+      { 
+          userId: userId, 
+          seatNo: seatNo, 
+          resvDate: resvDate,
+          startHour: parseInt(startHour), 
+          endHour: parseInt(endHour), 
+          totalPrice: totalPrice 
+      },
+      { autoCommit: true } // 자동 커밋
+    );
+
+    if (result.rowsAffected && result.rowsAffected > 0) {
+      res.json({ success: true, message: '예약이 성공적으로 완료되었습니다.' });
+    } else {
+      res.status(500).json({ success: false, message: '예약 처리에 실패했습니다.' });
+    }
+
+  } catch (err) {
+    console.error('Error making reservation:', err);
+    res.status(500).json({ success: false, message: '예약 처리 중 서버 오류가 발생했습니다.' });
+  }
+});
+
 
 app.get('/board/list', async (req, res) => {
   const { pageSize, offset } = req.query;
