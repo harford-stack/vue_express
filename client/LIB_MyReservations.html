@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 예약 내역</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            border-radius: 5px;
+        }
+        main {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .filter-buttons {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .filter-buttons button {
+            background-color: #ddd;
+            color: #333;
+            border: none;
+            padding: 10px 15px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .filter-buttons button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .filter-buttons button:hover:not(.active) {
+            background-color: #ccc;
+        }
+        .reservation-list {
+            list-style: none;
+            padding: 0;
+        }
+        .reservation-item {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap; /* 반응형을 위해 추가 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .reservation-details {
+            flex-grow: 1;
+            text-align: left;
+            padding-right: 15px; /* 버튼과의 간격 */
+        }
+        .reservation-details p {
+            margin: 5px 0;
+            color: #555;
+        }
+        .reservation-details strong {
+            color: #333;
+        }
+        .reservation-details .status {
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 3px;
+            color: white;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .status.confirmed { background-color: #4CAF50; }
+        .status.canceled { background-color: #f44336; }
+        .status.past { background-color: #9E9E9E; } /* 지나간 예약 */
+        .status.upcoming { background-color: #2196F3; } /* 다가올 예약 */
+
+
+        .reservation-actions button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+            margin-left: 10px;
+        }
+        .reservation-actions button:hover {
+            background-color: #d32f2f;
+        }
+        .reservation-actions button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .empty-message {
+            text-align: center;
+            color: #666;
+            padding: 30px;
+            border: 1px dashed #ddd;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .loading-message {
+            text-align: center;
+            padding: 20px;
+            color: #007bff;
+        }
+        .info-message {
+            background-color: #e7f3fe;
+            color: #004085;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border: 1px solid #cce5ff;
+        }
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border: 1px solid #f5c6cb;
+        }
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .reservation-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .reservation-details {
+                padding-right: 0;
+                margin-bottom: 10px;
+            }
+            .reservation-actions button {
+                margin-left: 0;
+                width: 100%;
+                margin-top: 5px;
+            }
+        }
+        .btn-back-to-main {
+            background-color: #6c757d; /* 회색 계열로 메인 버튼과 구분 */
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: background-color 0.3s;
+        }
+        .btn-back-to-main:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>내 예약 내역</h1>
+        </header>
+
+        <main>
+            <div style="text-align: right; margin-bottom: 20px;">
+                <button class="btn-back-to-main" @click="goToMainPage">메인으로 돌아가기</button>
+            </div>
+            <h2>{{ userName }}님의 예약 정보</h2>
+
+            <div class="filter-buttons">
+                <button :class="{ active: filterType === 'all' }" @click="filterType = 'all'">모든 예약</button>
+                <button :class="{ active: filterType === 'upcoming' }" @click="filterType = 'upcoming'">다가올 예약</button>
+                <button :class="{ active: filterType === 'past' }" @click="filterType = 'past'">지난 예약</button>
+                <button :class="{ active: filterType === 'canceled' }" @click="filterType = 'canceled'">취소된 예약</button>
+            </div>
+
+            <div v-if="isLoading" class="loading-message">
+                예약 내역을 불러오는 중입니다...
+            </div>
+
+            <div v-if="message" :class="isSuccess ? 'info-message' : 'error-message'">
+                {{ message }}
+            </div>
+
+            <ul class="reservation-list" v-if="!isLoading && filteredReservations.length > 0">
+                <li v-for="reservation in filteredReservations" :key="reservation.resvno" class="reservation-item">
+                    <div class="reservation-details">
+                        <p><strong>예약 번호:</strong> {{ reservation.resvno }}</p>
+                        <p><strong>예약 시점:</strong> {{ formatDateTime(reservation.resvtime) }}</p>
+                        <p><strong>좌석:</strong> {{ reservation.location }} ({{ reservation.seat_notes }})</p>
+                        <p>
+                            <strong>날짜:</strong> {{ formatDate(reservation.resvdate) }}
+                            <strong style="margin-left: 10px;">시간:</strong> {{ reservation.start_hour }}시 ~ {{ reservation.end_hour }}시
+                        </p>
+                        <p><strong>총 금액:</strong> {{ reservation.totalprice }}원</p>
+                        <p><strong>상태:</strong>
+                            <span :class="['status', getReservationStatusClass(reservation)]">
+                                {{ getReservationStatusText(reservation) }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="reservation-actions">
+                        <!-- '다가올 예약'이면서 '확정(CONFIRMED)' 상태일 때만 취소 버튼 활성화 -->
+                        <button v-if="isCancellable(reservation)" @click="cancelReservation(reservation.resvno)">
+                            예약 취소
+                        </button>
+                        <!-- 예약 변경은 복잡하므로 현재는 비활성 (placeholder) -->
+                        <button disabled title="예약 변경은 준비 중입니다.">예약 변경</button>
+                    </div>
+                </li>
+            </ul>
+
+            <div v-if="!isLoading && filteredReservations.length === 0" class="empty-message">
+                해당 조건의 예약 내역이 없습니다.
+            </div>
+        </main>
+    </div>
+</body>
+</html>
+
+<script>
+    const app = Vue.createApp({
+        data() {
+            return {
+                userId: '',
+                userName: '',
+                reservations: [],
+                filterType: 'all', // 'all', 'upcoming', 'past', 'canceled'
+                isLoading: false,
+                message: '',
+                isSuccess: false,
+                currentDateTime: new Date() // 현재 시각을 기준으로 예약 상태를 판단하기 위해
+            };
+        },
+        computed: {
+            filteredReservations() {
+                const now = this.currentDateTime;
+                console.log("현재 예약 목록:", this.reservations);
+                console.log("현재 시각:", now);
+                
+                return this.reservations.filter(reservation => {
+                    // ⭐ 여기에 resvDateTime을 선언하여 모든 case에서 접근 가능하게 합니다.
+                    const resvDateTime = new Date(reservation.resvdate);
+                    // 종료 시간을 기준으로 과거/미래 판단
+                    resvDateTime.setHours(reservation.end_hour); 
+
+                    // 확정 상태를 확인하는 공통 변수 (확실히 'CONFIRMED' 문자열로 오는지 확인 필요)
+                    // 만약 `reservation.resvstatus`가 숫자 13000으로 온다면 서버에서 문자열로 변경하거나
+                    // `reservation.resvstatus == 'CONFIRMED' || reservation.resvstatus == 13000` 와 같이 조정해야 합니다.
+                    // 서버가 'CONFIRMED' 문자열을 보낸다고 가정하고 `=== 'CONFIRMED'`를 사용합니다.
+                    const isConfirmedStatus = reservation.resvstatus === 'CONFIRMED'; 
+
+                    switch (this.filterType) {
+                        case 'all':
+                            return true;
+                        case 'upcoming':
+                            const isFuture = resvDateTime > now;
+                            console.log(`예약 ${reservation.resvno}: 날짜=${resvDateTime}, 미래예약?=${isFuture}, 상태=${reservation.resvstatus}, 확정상태?=${isConfirmedStatus}`);
+                            return isFuture && isConfirmedStatus;
+                        case 'past':
+                            const isPast = resvDateTime <= now;
+                            console.log(`예약 ${reservation.resvno}: 날짜=${resvDateTime}, 지난예약?=${isPast}, 상태=${reservation.resvstatus}, 확정상태?=${isConfirmedStatus}`);
+                            return isPast && isConfirmedStatus;
+                        case 'canceled':
+                            return reservation.resvstatus === 'CANCELED';
+                        default:
+                            return true;
+                    }
+                });
+            }
+        },
+        methods: {
+            // 로그인 상태 확인 및 userId 설정
+            checkLoginStatus() {
+                this.userId = sessionStorage.getItem("sessionId") || '';
+                this.userName = sessionStorage.getItem("sessionName") || '방문객';
+                if (!this.userId) {
+                    alert('예약 내역을 보려면 로그인이 필요합니다. 로그인 페이지로 이동합니다.');
+                    location.href = "LIB_Login.html"; 
+                    return false;
+                }
+                return true;
+            },
+
+            // 예약 내역 불러오기
+            loadReservations() {
+                if (!this.userId) return;
+
+                let self = this;
+                self.isLoading = true;
+                self.message = '';
+
+                $.ajax({
+                    url: "http://localhost:3009/myreservations", // 새로운 백엔드 API
+                    dataType: "json",
+                    type: "GET",
+                    data: { userId: self.userId },
+                    success: function (data) {
+                        self.isLoading = false;
+                        if (data.success) {
+                            // DB에서 받은 데이터를 바로 사용하거나 필요한 경우 추가 가공
+                            self.reservations = data.reservations.map(res => ({
+                                resvno: res[0],         // 예약 번호
+                                userid: res[1],         // 사용자 ID
+                                seatno: res[2],         // 좌석 번호 (추가)
+                                resvdate: res[3],       // 예약 날짜
+                                start_hour: res[4],     // 시작 시간
+                                end_hour: res[5],       // 종료 시간
+                                totalprice: res[6],     // 총 금액
+                                resvstatus: res[7],     // 예약 상태
+                                resvtime: res[8],       // 예약 시점
+                                location: res[9],       // 좌석 위치
+                                seat_notes: res[10],    // 좌석 설명
+                                typename: res[11]       // 좌석 유형 이름
+                            }));
+                            self.message = ''; // 성공 메시지 필요시
+                        } else {
+                            self.message = '예약 내역을 불러오는데 실패했습니다: ' + data.message;
+                            self.isSuccess = false;
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        self.isLoading = false;
+                        console.error('Error fetching reservations:', error);
+                        self.message = '서버 통신 중 오류가 발생했습니다.';
+                        self.isSuccess = false;
+                    }
+                });
+            },
+
+            // 예약 취소
+            cancelReservation(resvNo) {
+                if (!confirm(`예약 번호 ${resvNo}번을 정말로 취소하시겠습니까?\n\n` + 
+                            `※ 예약을 취소하시면 해당 좌석은 즉시 다른 사용자에게 공개됩니다.\n` + 
+                            `   다시 예약하시려면 빠르게 진행해 주세요.`)) {
+                    return;
+                }
+
+                let self = this;
+                self.message = '';
+
+                $.ajax({
+                    url: "http://localhost:3009/cancel-reservation", // 새로운 백엔드 API
+                    dataType: "json",
+                    type: "GET",
+                    data: { resvNo: resvNo, userId: self.userId },
+                    success: function (data) {
+                        if (data.success) {
+                            self.message = `예약 번호 ${resvNo}번이 성공적으로 취소되었습니다.`;
+                            self.isSuccess = true;
+                            alert(self.message);
+                            self.loadReservations(); // 취소 후 예약 내역 다시 불러오기
+                        } else {
+                            self.message = `예약 취소에 실패했습니다: ${data.message}`;
+                            self.isSuccess = false;
+                            alert(self.message);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Error canceling reservation:', error);
+                        self.message = '서버 통신 중 오류가 발생했습니다.';
+                        self.isSuccess = false;
+                        alert(self.message);
+                    }
+                });
+            },
+
+            // 날짜 포맷팅 유틸리티
+            formatDate(dateString) {
+                if (!dateString || dateString === '') return '날짜 정보 없음';
+                
+                const date = new Date(dateString);
+                // 유효한 날짜인지 확인
+                if (isNaN(date.getTime())) return '날짜 정보 오류';
+                
+                return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+            },
+            // 날짜와 시간을 함께 포맷팅하는 함수
+            formatDateTime(datetimeString) {
+                if (!datetimeString) return '정보 없음';
+                
+                const date = new Date(datetimeString);
+                if (isNaN(date.getTime())) {
+                    return '날짜 정보 오류';
+                }
+                
+                return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${date.getHours()}시 ${date.getMinutes()}분`;
+            },
+
+            // 예약 상태 텍스트 반환
+            getReservationStatusText(reservation) {
+                const now = this.currentDateTime;
+                const resvDateTime = new Date(reservation.resvdate);
+                resvDateTime.setHours(reservation.end_hour);
+
+                if (reservation.resvstatus === 'CANCELED') {
+                    return '취소됨';
+                } else if (resvDateTime > now) {
+                    return '예약 확정 (다가올 예정)';
+                } else {
+                    return '이용 완료 (지난 예약)';
+                }
+            },
+
+            // 예약 상태에 따른 CSS 클래스 반환
+            getReservationStatusClass(reservation) {
+                const now = this.currentDateTime;
+                const resvDateTime = new Date(reservation.resvdate);
+                resvDateTime.setHours(reservation.end_hour);
+
+                if (reservation.resvstatus === 'CANCELED') {
+                    return 'canceled';
+                } else if (resvDateTime > now) {
+                    return 'upcoming'; // 다가올 예약
+                } else {
+                    return 'past'; // 지난 예약
+                }
+            },
+
+            // 예약 취소 가능 여부 (다가올 예약이면서 확정 상태일 때만 가능)
+            isCancellable(reservation) {
+                const now = this.currentDateTime;
+                const resvDateTime = new Date(reservation.resvdate);
+                resvDateTime.setHours(reservation.end_hour);
+                
+                return reservation.resvstatus === 'CONFIRMED' && resvDateTime > now;
+            },
+
+            // 현재 시각 업데이트 (1분마다 업데이트하여 "다가올 예정" 등의 상태 실시간 반영)
+            updateCurrentTime() {
+                this.currentDateTime = new Date();
+            },
+            goToMainPage() {
+                location.href = "LIB_Main.html";
+            }
+        },
+        mounted() {
+            // 로그인 상태 확인 후 예약 내역 불러오기
+            if (this.checkLoginStatus()) {
+                this.loadReservations();
+            }
+            // 1분마다 현재 시각을 업데이트하여 예약 상태 필터 및 표시를 실시간으로 반영
+            this.interval = setInterval(this.updateCurrentTime, 60 * 1000); 
+        },
+        beforeUnmount() {
+            // 컴포넌트 unmount 시 인터벌 제거
+            clearInterval(this.interval);
+        }
+    });
+
+    app.mount('#app');
+</script>

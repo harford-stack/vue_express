@@ -1,0 +1,257 @@
+/* 모바일 전용 기본 폰트 및 배경 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+html, body {
+    margin: 0; padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4efea; /* 연한 베이지톤 */
+    font-family: 'Noto Sans KR', sans-serif;
+    color: #4b3b2b; /* 다크 브라운 텍스트 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+/* 모바일 화면 고정 컨테이너 */
+#app {
+    width: 375px;  /* 모바일 대표 너비 */
+    min-width: 375px;
+    max-width: 375px;
+    margin: 0 auto;
+    background-color: #fff9f2;
+    height: 100vh;
+    box-shadow: 0 0 15px rgba(75, 59, 43, 0.3);
+    overflow-y: auto;
+    border-radius: 15px;
+}
+
+/* 헤더 스타일 */
+header {
+    background-color: #8c6c4b;
+    padding: 3rem 1rem;
+    color: #f7f1e1;
+    text-align: center;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    box-shadow: 0 5px 20px rgba(140, 108, 75, 0.35);
+}
+
+header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+/* 메인 컨텐츠 영역 */
+main {
+    padding: 25px 18px;
+}
+
+/* 버튼 스타일 */
+button {
+    width: 100%;
+    padding: 14px 0;
+    margin-bottom: 14px;
+    font-size: 1.15rem;
+    border-radius: 12px;
+    border: none;
+    background-color: #a17c50;
+    color: #f7f1e1;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(161, 124, 80, 0.45);
+    transition: background-color 0.3s ease;
+}
+
+button:active {
+    background-color: #7d623a;
+}
+
+button:disabled {
+    background-color: #c8b59e;
+    cursor: not-allowed;
+}
+
+/* 입력 필드 및 셀렉트 박스 */
+input[type="text"],
+input[type="password"],
+input[type="date"],
+select,
+textarea {
+    width: 100%;
+    padding: 14px 12px;
+    margin-bottom: 18px;
+    border-radius: 12px;
+    border: 1.8px solid #a39985;
+    font-size: 1rem;
+    background-color: #faf6f0;
+    color: #4b3b2b;
+    transition: border-color 0.3s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #8c6c4b;
+    outline: none;
+    box-shadow: 0 0 10px rgba(140, 108, 75, 0.25);
+}
+
+/* 좌석맵 영역 */
+.seat-map-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+    gap: 18px;
+    margin-top: 25px;
+    padding-bottom: 15px;
+}
+
+.seat {
+    background-color: #d6baa6;
+    border-radius: 15px;
+    padding: 17px 10px;
+    text-align: center;
+    font-weight: 500;
+    color: #4b3b2b;
+    box-shadow: 0 3px 8px rgba(140, 108, 75, 0.3);
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease-in-out;
+}
+
+.seat:hover:not(.occupied):not(.selected) {
+    background-color: #b18e61;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(140, 108, 75, 0.45);
+}
+
+.seat.selected {
+    background-color: #917549;
+    color: #f7f1e1;
+    transform: scale(1.05);
+    box-shadow: 0 8px 18px rgba(140, 108, 75, 0.7);
+}
+
+.seat.occupied {
+    background-color: #d7d0c5;
+    color: #a89b8c;
+    text-decoration: line-through;
+    cursor: not-allowed;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* 예약내역 카드 스타일 */
+.reservation-item {
+    background-color: #f8f4ec;
+    border-radius: 18px;
+    box-shadow: 0 4px 14px rgba(140, 108, 75, 0.15);
+    padding: 18px 22px;
+    margin-bottom: 18px;
+}
+
+/* 메시지 스타일 */
+.info-message {
+    background-color: #ecf0e9;
+    color: #556b2f;
+    padding: 16px 24px;
+    border-radius: 12px;
+    border: 1.8px solid #b5a687;
+    margin-top: 18px;
+    font-weight: 500;
+    box-shadow: 0 2px 12px rgba(181, 166, 135, 0.3);
+}
+
+.error-message {
+    background-color: #f4e2dc;
+    color: #8b3a3a;
+    padding: 16px 24px;
+    border-radius: 12px;
+    border: 1.8px solid #b34136;
+    font-weight: 600;
+    margin-top: 18px;
+    box-shadow: 0 2px 14px rgba(179, 65, 54, 0.3);
+}
+
+/* 활성 예약 경고 스타일 */
+.active-reservation-warning {
+    background-color: #f5eadc;
+    border-radius: 15px;
+    border: 1.8px solid #c9b799;
+    padding: 22px 26px;
+    margin-bottom: 30px;
+    color: #7d6956;
+    box-shadow: 0 6px 18px rgba(124, 100, 74, 0.3);
+    text-align: center;
+}
+
+.active-reservation-warning h3 {
+    font-weight: 700;
+    font-size: 1.6rem;
+    margin-bottom: 12px;
+}
+
+.active-reservation-warning p {
+    font-weight: 400;
+    font-size: 1rem;
+    color: #8b7c66;
+}
+
+.active-reservation-warning .btn-view-reservations {
+    background-color: #ab7c3e;
+    color: #f7efe4;
+    border-radius: 28px;
+    border: none;
+    padding: 12px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 5px 12px rgba(171, 124, 62, 0.7);
+    transition: background-color 0.3s ease;
+}
+
+.active-reservation-warning .btn-view-reservations:hover {
+    background-color: #7f5c29;
+}
+
+/* 비활성화 스타일 */
+input[type="date"]:disabled,
+select:disabled {
+    background-color: #efe7db;
+    color: #977c5d;
+    cursor: not-allowed;
+    border-color: #c6b79b;
+    opacity: 0.85;
+}
+
+.seat.disabled {
+    background-color: #d9cbbf;
+    color: #9e8c79;
+    cursor: not-allowed;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* 반응형 (350px 이하) */
+@media screen and (max-width: 350px) {
+    #app {
+        width: 320px;
+        min-width: 320px;
+        max-width: 320px;
+    }
+
+    header h1 {
+        font-size: 2rem;
+    }
+
+    button {
+        font-size: 1rem;
+        padding: 12px 0;
+    }
+    
+    .seat-map-container {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 10px;
+        padding-bottom: 10px;
+    }
+}

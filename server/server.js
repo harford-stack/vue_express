@@ -327,9 +327,9 @@ app.get('/prof/update', async (req, res) => {
 
 app.get('/lib/login', async (req, res) => {
   const { userId, pwd } = req.query;
-  let query = `SELECT * FROM LIB_USERS WHERE USERID = '${userId}' AND PASSWORD = '${pwd}'`
+  const query = `SELECT * FROM LIB_USERS WHERE USERID = :userId AND PASSWORD = :pwd`;
   try {
-    const result = await connection.execute(query);
+    const result = await connection.execute(query, { userId: userId, pwd: pwd });
     const columnNames = result.metaData.map(column => column.name);
 
     // 쿼리 결과를 JSON 형태로 변환
@@ -350,9 +350,9 @@ app.get('/lib/login', async (req, res) => {
 
 app.get('/lib/checkId', async (req, res) => {
   const { userId } = req.query;
-  let query = `SELECT COUNT(*) AS COUNT FROM LIB_USERS WHERE USERID = '${userId}'`
+  const query = `SELECT COUNT(*) AS COUNT FROM LIB_USERS WHERE USERID = :userId`;
   try {
-    const result = await connection.execute(query);
+    const result = await connection.execute(query, { userId: userId });
     const columnNames = result.metaData.map(column => column.name);
 
     // 쿼리 결과를 JSON 형태로 변환
@@ -682,33 +682,61 @@ app.get('/seats', async (req, res) => {
 // 3. 좌석 예약 처리 (GET /reservation)
 app.get('/reservation', async (req, res) => {
   try {
+    console.log('예약 요청 받음:', req.query); // 요청 로깅
     // 클라이언트에서 전송된 데이터
     const { userId, seatNo, resvDate, startHour, endHour, totalPrice } = req.query;
 
     // 필수 값 검증
     if (!userId || !seatNo || !resvDate || startHour == null || endHour == null || totalPrice == null) {
+      console.log('필수 값 누락:', { userId, seatNo, resvDate, startHour, endHour, totalPrice });
       return res.status(400).json({ success: false, message: '필수 예약 정보가 누락되었습니다.' });
     }
+
+    // ⭐️ 1인 1예약 강제 로직 추가 시작 ⭐️
+    // 사용자의 활성 예약이 있는지 먼저 확인
+    const activeUserReservationCheck = await connection.execute(
+      `SELECT COUNT(*) AS ACTIVE_COUNT
+       FROM LIB_RESERVATIONS 
+       WHERE USERID = :userId 
+         AND RESVSTATUS = 'CONFIRMED'
+         AND (TO_DATE(RESVDATE, 'YYYY-MM-DD') > SYSDATE OR (TO_DATE(RESVDATE, 'YYYY-MM-DD') = TRUNC(SYSDATE) AND END_HOUR > TO_NUMBER(TO_CHAR(SYSDATE, 'HH24'))))`,
+      { userId: userId }
+    );
+    
+    console.log('[1인 1예약] 사용자 활성 예약 체크 결과:', activeUserReservationCheck.rows);
+    
+    // 이미 활성 예약이 있으면 추가 예약 불가
+    if (activeUserReservationCheck.rows[0][0] > 0) {
+      return res.status(409).json({ 
+        success: false, 
+        message: '이미 활성화된 예약이 있습니다. 스터디카페는 1인 1예약 원칙을 적용하고 있습니다.' 
+      });
+    }
+    // ⭐️ 1인 1예약 강제 로직 추가 끝 ⭐️
 
     // 해당 시간대에 해당 좌석이 이미 예약되었는지 확인하는 로직 (클라이언트에서 한 번 더 최종 확인)
     const checkReservation = await connection.execute(
       `SELECT COUNT(*) AS CNT
        FROM LIB_RESERVATIONS
        WHERE SEATNO = :seatNo
-         AND RESVDATE = TO_DATE(:resvDate, 'YYYY-MM-DD')
-         AND (
-              (START_HOUR < :endHour AND END_HOUR > :startHour)
-              OR
-              (START_HOUR = :startHour AND END_HOUR = :endHour)
-         )
-         AND RESVSTATUS = 'CONFIRMED'`,
+        AND RESVDATE = TO_DATE(:resvDate, 'YYYY-MM-DD')
+        AND (
+          (START_HOUR <= :endHour AND END_HOUR >= :startHour)
+          OR
+          (START_HOUR >= :startHour AND START_HOUR < :endHour)
+          OR
+          (END_HOUR > :startHour AND END_HOUR <= :endHour)
+        )
+        AND RESVSTATUS = 'CONFIRMED'`,
       { 
-          seatNo: seatNo, 
+          seatNo: parseInt(seatNo), 
           resvDate: resvDate,
           startHour: parseInt(startHour), // 숫자로 변환
           endHour: parseInt(endHour)     // 숫자로 변환
       }
     );
+
+    console.log('중복 예약 체크 결과:', checkReservation.rows);
 
     if (checkReservation.rows[0][0] > 0) {
       return res.status(409).json({ success: false, message: '해당 시간대에 이미 예약된 좌석입니다. 다시 선택해주세요.' });
@@ -720,14 +748,16 @@ app.get('/reservation', async (req, res) => {
        VALUES (SEQ_RESERVATION.NEXTVAL, :userId, :seatNo, TO_DATE(:resvDate, 'YYYY-MM-DD'), :startHour, :endHour, :totalPrice, 'CONFIRMED')`, // RESVSTATUS 추가
       { 
           userId: userId, 
-          seatNo: seatNo, 
+          seatNo: parseInt(seatNo), 
           resvDate: resvDate,
           startHour: parseInt(startHour), 
           endHour: parseInt(endHour), 
-          totalPrice: totalPrice 
+          totalPrice: parseInt(totalPrice) 
       },
       { autoCommit: true } // 자동 커밋
     );
+
+    console.log('예약 생성 결과:', result);
 
     if (result.rowsAffected && result.rowsAffected > 0) {
       res.json({ success: true, message: '예약이 성공적으로 완료되었습니다.' });
@@ -738,6 +768,150 @@ app.get('/reservation', async (req, res) => {
   } catch (err) {
     console.error('Error making reservation:', err);
     res.status(500).json({ success: false, message: '예약 처리 중 서버 오류가 발생했습니다.' });
+  }
+});
+
+// 특정 사용자의 모든 예약 내역 조회 (GET /myreservations)
+app.get('/myreservations', async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: '사용자 ID가 필요합니다.' });
+    }
+
+    const result = await connection.execute(
+      `SELECT 
+          R.RESVNO, R.USERID, R.SEATNO, TO_CHAR(R.RESVDATE, 'YYYY-MM-DD') AS RESVDATE, R.START_HOUR, R.END_HOUR, 
+          R.TOTALPRICE, R.RESVSTATUS, TO_CHAR(R.RESVTIME, 'YYYY-MM-DD HH24:MI:SS') AS RESVTIME, 
+          S.LOCATION, S.SEAT_NOTES, T.TYPENAME
+       FROM 
+          LIB_RESERVATIONS R
+       JOIN
+          LIB_SEATS S ON R.SEATNO = S.SEATNO
+       JOIN
+          LIB_SEAT_TYPES T ON S.TYPENO = T.TYPENO
+       WHERE
+          R.USERID = :userId
+       ORDER BY R.RESVDATE DESC, R.START_HOUR DESC`,
+      { userId: userId }
+    );
+    
+    res.json({ success: true, reservations: result.rows });
+  } catch (err) {
+    console.error('Error fetching user reservations:', err);
+    res.status(500).json({ success: false, message: '사용자 예약 내역을 불러오는데 실패했습니다.' });
+  }
+});
+
+// 5. 예약 취소 처리 (GET /cancel-reservation)
+app.get('/cancel-reservation', async (req, res) => {
+  try {
+    const { resvNo, userId } = req.query; // GET 방식이므로 req.query 사용
+
+    if (!resvNo || !userId) {
+      return res.status(400).json({ success: false, message: '예약 번호와 사용자 ID가 필요합니다.' });
+    }
+
+    // 예약 정보를 조회하여 현재 상태와 시간이 취소 가능한지 확인
+    const checkResv = await connection.execute(
+      `SELECT RESVDATE, START_HOUR, END_HOUR, RESVSTATUS, USERID FROM LIB_RESERVATIONS WHERE RESVNO = :resvNo`,
+      { resvNo: resvNo }
+    );
+
+    if (checkResv.rows.length === 0) {
+      return res.status(404).json({ success: false, message: '해당 예약 정보를 찾을 수 없습니다.' });
+    }
+
+    const reservation = checkResv.rows[0];
+    const resvDate = reservation[0];
+    const startHour = reservation[1];
+    const endHour = reservation[2];
+    const resvStatus = reservation[3];
+    const resvUserId = reservation[4];
+
+    // 본인 예약인지 확인
+    if (resvUserId !== userId) {
+      return res.status(403).json({ success: false, message: '본인의 예약만 취소할 수 있습니다.' });
+    }
+
+    // 이미 취소된 예약인지 확인
+    if (resvStatus === 'CANCELED') {
+      return res.status(409).json({ success: false, message: '이미 취소된 예약입니다.' });
+    }
+
+    // 예약 종료 시간이 현재 시간보다 이전이면 취소 불가능
+    const now = new Date();
+    const endDate = new Date(resvDate);
+    endDate.setHours(endHour); // 예약 종료 시간을 기준으로 비교
+
+    if (endDate <= now) {
+      return res.status(409).json({ success: false, message: '이미 종료된 예약은 취소할 수 없습니다.' });
+    }
+
+    // 예약 상태를 'CANCELED'로 업데이트
+    const result = await connection.execute(
+      `UPDATE LIB_RESERVATIONS SET RESVSTATUS = 'CANCELED' WHERE RESVNO = :resvNo`,
+      { resvNo: resvNo },
+      { autoCommit: true } // 자동 커밋
+    );
+
+    if (result.rowsAffected && result.rowsAffected > 0) {
+      res.json({ success: true, message: '예약이 성공적으로 취소되었습니다.' });
+    } else {
+      res.status(500).json({ success: false, message: '예약 취소 처리에 실패했습니다.' });
+    }
+
+  } catch (err) {
+    console.error('Error canceling reservation:', err);
+    res.status(500).json({ success: false, message: '예약 취소 중 서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사용자의 활성 예약 조회 (현재 시점 이후의 확정된 예약)
+app.get('/user/active-reservations', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    
+    if (!userId) {
+      return res.status(400).json({ success: false, message: '사용자 ID가 필요합니다.' });
+    }
+    console.log(`[활성 예약 디버그] JS 현재 시각: ${new Date().toISOString()}`);
+    console.log(`[활성 예약 디버그] 요청 사용자 ID: ${userId}`);
+    
+    // 현재 시점 이후의 확정된 예약만 조회 (종료 시간이 현재보다 미래인 예약)
+    const result = await connection.execute(
+      `SELECT COUNT(*) AS ACTIVE_COUNT
+      FROM LIB_RESERVATIONS 
+      WHERE USERID = :userId 
+      AND RESVSTATUS = 'CONFIRMED'
+      AND TRUNC(RESVDATE) >= TRUNC(SYSDATE)
+      AND END_HOUR > TO_NUMBER(TO_CHAR(SYSDATE, 'HH24'))`,
+         { userId: userId }
+    );
+    console.log('변수 확인:', {
+      userId: userId,
+      currentDate: new Date().toISOString()
+    });
+    console.log('[활성 예약 디버그] DB 쿼리 결과:', result.rows); 
+    // 결과 로그 추가
+    const activeCount = result.rows[0][0];
+    const sampleResvStatus = result.rows[0][1]; // 추가된 컬럼
+    const dbSysdate = result.rows[0][2]; // 추가된 컬럼
+
+    console.log(`[활성 예약 디버그] 최종 활성 예약 수: ${activeCount}`);
+    console.log(`[활성 예약 디버그] DB에서 확인된 SYSDATE: ${dbSysdate}`);
+    console.log(`[활성 예약 디버그] DB에서 확인된 RESVSTATUS (샘플): ${sampleResvStatus}`);
+    
+    res.json({ 
+      success: true, 
+      hasActiveReservation: activeCount > 0,
+      activeCount: activeCount
+    });
+    
+  } catch (err) {
+    console.error('활성 예약 확인 중 오류:', err);
+    res.status(500).json({ success: false, message: '활성 예약 확인 중 오류가 발생했습니다.' });
   }
 });
 

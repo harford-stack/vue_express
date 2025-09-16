@@ -30,6 +30,100 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
+        .btn-back-to-main {
+            background-color: #6c757d; /* 회색 계열로 메인 버튼과 구분 */
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: background-color 0.3s;
+        }
+        .btn-back-to-main:hover {
+            background-color: #5a6268;
+        }
+        .reservation-policy-info {
+            background-color: #fff3cd; /* 경고 옐로우 배경색 */
+            color: #856404; /* 경고 옐로우 글씨색 */
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.95em;
+        }
+        .reservation-policy-info p {
+            margin: 5px 0;
+        }
+        /* 비활성화된 입력 필드 (날짜, 시간 선택) */
+        input[type="date"]:disabled,
+        select:disabled {
+            background-color: #e9ecef; /* 약간 어두운 회색 배경 */
+            color: #6c757d;           /* 텍스트 색상도 회색으로 */
+            cursor: not-allowed;      /* 금지 커서 */
+            border-color: #ced4da;    /* 테두리 색상 조정 */
+            opacity: 0.8;             /* 약간 투명하게 */
+        }
+
+        /* 비활성화된 좌석 스타일 */
+        /* .seat는 기존 스타일이 있을 것으로 예상되며, .disabled 클래스만 추가적으로 적용됩니다. */
+        .seat.disabled {
+            opacity: 0.5;           /* 비활성 시 투명도 감소 */
+            cursor: not-allowed;    /* 금지 커서 */
+            pointer-events: none;   /* 클릭 이벤트를 완전히 차단 (가장 중요!) */
+            /* background-color 등은 필요에 따라 기존 .seat 스타일에 덮어쓰거나 추가 */
+        }
+
+        /* 예약하기 버튼 (확실히 비활성화임을 강조) */
+        /* .btn-reserve는 현재 HTML에 존재하는 클래스입니다. */
+        .btn-reserve:disabled {
+            background-color: #cccccc !important; /* 회색 배경 */
+            color: #666666 !important;           /* 텍스트 색상도 회색 */
+            cursor: not-allowed !important;      /* 금지 커서 */
+            border-color: #aaaaaa !important;    /* 테두리 색상 조정 */
+            opacity: 0.7;                        /* 약간 투명하게 */
+        }
+
+        /* 활성 예약 경고 메시지 스타일 (새로 추가) */
+        .active-reservation-warning {
+            background-color: #fff3cd; /* 경고를 나타내는 연한 노랑 */
+            color: #856404;           /* 진한 노란색 텍스트 */
+            padding: 15px 20px;       /* 내부 여백 */
+            margin-bottom: 20px;      /* 아래 여백 */
+            border: 1px solid #ffeeba; /* 테두리 */
+            border-radius: 8px;       /* 둥근 모서리 */
+            text-align: center;       /* 텍스트 중앙 정렬 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08); /* 그림자 효과 */
+        }
+
+        .active-reservation-warning h3 {
+            color: #856404; /* 제목 색상 */
+            margin-top: 0;   /* 상단 여백 제거 */
+            margin-bottom: 10px; /* 제목 아래 여백 */
+            font-size: 1.4em; /* 제목 크기 */
+        }
+
+        .active-reservation-warning p {
+            margin: 5px 0; /* 단락 상하 여백 */
+        }
+
+        /* 경고 메시지 내 '내 예약 확인하기' 버튼 스타일 */
+        .active-reservation-warning .btn-view-reservations {
+            background-color: #ffc107; /* 경고 관련 버튼 색상 */
+            color: #212529;           /* 어두운 텍스트 */
+            border: none;             /* 테두리 없음 */
+            padding: 10px 20px;       /* 내부 여백 */
+            border-radius: 5px;       /* 둥근 모서리 */
+            cursor: pointer;          /* 클릭 가능 커서 */
+            margin-top: 15px;         /* 상단 여백 */
+            font-weight: bold;        /* 글씨 두껍게 */
+            transition: background-color 0.3s ease; /* 호버 시 부드러운 전환 */
+        }
+
+        .active-reservation-warning .btn-view-reservations:hover {
+            background-color: #e0a800; /* 호버 시 색상 변경 */
+        }
         h1, h2, h3 {
             color: #333;
         }
@@ -247,6 +341,13 @@
         </header>
 
         <main>
+            <div style="text-align: right; margin-bottom: 20px;">
+                <button class="btn-back-to-main" @click="goToMainPage">메인으로 돌아가기</button>
+            </div>
+            <!-- <div class="reservation-policy-info">
+                <p>※ 스터디카페는 쾌적한 환경 유지를 위해 **1인 1예약**을 원칙으로 합니다.</p>
+                <p>※ 진행 중인 예약(다가올 예정)이 있는 경우, 새로운 좌석 예약이 불가합니다. 예약 내역을 확인해 주세요.</p>
+            </div> -->
             <!-- 날짜 선택 영역 -->
             <section class="date-selection">
                 <h2>예약 날짜 선택</h2>
@@ -343,7 +444,7 @@
                     <p>예약 날짜: {{ formatDate(selectedDate) }}</p>
                     <p>이용 시간: {{ startHour }}:00 ~ {{ endHour }}:00 ({{ endHour - startHour }}시간)</p>
                     <p>총 금액: {{ calculateTotalPrice() }}원</p>
-                    <button @click="makeReservation" class="btn-reserve">예약하기</button>
+                    <button @click="makeReservation" class="btn-reserve reserve-btn">예약하기</button>
                 </div>
 
                 <div v-if="message" :class="isSuccess ? 'success-message' : 'error-message'">
@@ -374,11 +475,14 @@
                 availableHours: Array.from({ length: 14 }, (_, i) => i + 9), // 9시부터 22시까지
 
                 // 사용자 정보 (로그인 사용자 정보를 세션에서 가져올 예정)
-                userId: 'user123', // 임시 사용자 ID
+                userId: '',
 
                 // 예약 상태 메시지
                 message: '',
-                isSuccess: false
+                isSuccess: false,
+
+                hasActiveReservation: false,
+                activeReservationWarningDisplayed: false
             };
         },
         computed: {
@@ -402,6 +506,9 @@
             }
         },
         methods: {
+            goToMainPage() {
+                location.href = "LIB_Main.html";
+            },
             // 좌석 상태에 따른 CSS 클래스 반환
             getSeatStatusClass(seat) {
                 if (seat.seatstatus === 'OCCUPIED') return 'occupied';
@@ -455,6 +562,10 @@
 
             // 예약하기
             makeReservation() {
+                if (this.hasActiveReservation) {
+                    this.showActiveReservationWarning(); // 경고창을 다시 보여줌
+                    return;
+                }
                 let self = this;
                 // 이 부분은 이미 mounted에서 체크했지만, 버튼 클릭 시점에도 다시 한번 확인
                 if (!self.userId) {
@@ -484,9 +595,10 @@
                     data: reservationData,
                     success: function (data) {
                         if (data.success) {
-                            self.message = '예약이 성공적으로 완료되었습니다!';
+                            self.message = '예약이 성공적으로 완료되었습니다! 메인 페이지로 이동합니다.';
                             self.isSuccess = true;
-                            alert(self.message); 
+                            alert(self.message);
+                            location.href = "LIB_Main.html";
                             
                             // 예약 후 좌석 정보를 다시 불러와서 예약된 상태를 반영
                             self.loadSeats();
@@ -579,6 +691,131 @@
                     location.href = "LIB_Login.html"; // 로그인 페이지로 이동
                     return;
                 }
+            },
+            // 1인 1예약 체크 메소드
+            async checkActiveReservations() { // async 키워드를 붙여 비동기 처리
+                let self = this;
+                console.log('checkActiveReservations 함수 실행됨');
+                console.log('현재 userId:', self.userId);
+                try {
+                    console.log('AJAX 요청 시작, 파라미터:', { userId: self.userId });
+                    const response = await $.ajax({
+                        url: "http://localhost:3009/user/active-reservations",
+                        dataType: "json",
+                        type: "GET",
+                        data: { userId: self.userId }
+                    });
+                    
+                    console.log('서버 응답 데이터:', response);
+                    if (response.success && response.hasActiveReservation) {
+                        console.log('활성 예약 있음:', response.activeCount);
+                        // 활성 예약이 있으면 예약 UI 비활성화 및 경고 메시지 표시
+                        self.hasActiveReservation = true;
+                        if (!self.activeReservationWarningDisplayed) { // 한 번만 표시되도록
+                            self.showActiveReservationWarning();
+                            self.activeReservationWarningDisplayed = true;
+                        }
+                    } else {
+                        console.log('활성 예약 없음');
+                        // 활성 예약이 없으면 정상적으로 예약 UI 활성화
+                        self.hasActiveReservation = false;
+                        self.activeReservationWarningDisplayed = false;
+                        // 활성화 로직이 필요한 경우 (예: 이전에 비활성화된 경우) 여기에 추가
+                        this.enableReservationUI(); 
+                    }
+                } catch (err) {
+                    console.error('활성 예약 확인 오류 상세 정보:', err);
+                    console.log('에러 객체 타입:', typeof err);
+                    console.log('에러 메시지:', err.message);
+                    console.log('에러 상태:', err.status);
+                    console.error('Error checking active reservations:', err);
+                    // 오류 발생 시에도 UI는 활성화 상태로 유지 (사용자에게 불편 주지 않기 위해)
+                    self.hasActiveReservation = false;
+                    self.activeReservationWarningDisplayed = false;
+                    alert('예약 상태 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+                }
+            },
+            
+            // 활성 예약 경고 메시지 표시 및 UI 비활성화
+            showActiveReservationWarning() {
+                // 경고 div가 이미 있는지 확인하여 중복 생성 방지
+                let warningDiv = document.querySelector('.active-reservation-warning');
+                if (!warningDiv) {
+                    warningDiv = document.createElement('div');
+                    warningDiv.className = 'active-reservation-warning';
+                    // 메인 컨텐츠 영역 앞에 삽입 (원하는 위치에 따라 변경 가능)
+                    const mainContent = document.querySelector('main');
+                    if (mainContent) {
+                        mainContent.insertBefore(warningDiv, mainContent.firstChild); // 메인 콘텐츠 최상단에 추가
+                    }
+                }
+                warningDiv.innerHTML = `
+                    <h3>⚠️ 이미 활성화된 예약이 있습니다</h3>
+                    <p>스터디카페는 <strong>1인 1예약 원칙</strong>을 적용하고 있습니다.</p>
+                    <p>새로운 좌석 예약이 불가합니다. 예약 내역을 확인해주세요.</p>
+                    <button class="btn-view-reservations" onclick="location.href='LIB_MyReservations.html'">내 예약 확인하기</button>
+                `;
+                
+                // 예약 관련 UI 비활성화
+                this.disableReservationUI();
+            },
+            
+            // 예약 UI 비활성화
+            disableReservationUI() {
+                // 날짜 선택 비활성화
+                const dateInput = document.querySelector('input[type="date"]');
+                if (dateInput) dateInput.disabled = true;
+                
+                // 시작 시간 선택 비활성화
+                const startTimeSelect = document.querySelector('#startTime');
+                if (startTimeSelect) startTimeSelect.disabled = true;
+                
+                // 종료 시간 선택 비활성화
+                const endTimeSelect = document.querySelector('#endTime');
+                if (endTimeSelect) endTimeSelect.disabled = true;
+
+                // 좌석 비활성화
+                document.querySelectorAll('.seat-map-container .seat').forEach(el => {
+                    el.classList.add('disabled');
+                    el.style.pointerEvents = 'none'; // 클릭 방지 추가
+                    el.onclick = null; // 클릭 이벤트 제거
+                });
+                
+                // 예약하기 버튼 비활성화
+                const reserveBtn = document.querySelector('.btn-reserve');
+                if (reserveBtn) {
+                    reserveBtn.disabled = true;
+                    reserveBtn.classList.add('disabled');
+                }
+            },
+
+            // 예약 UI 활성화 (선택 사항 - 나중에 재활성화가 필요할 경우)
+            enableReservationUI() {
+                // null 체크 추가
+                const dateInput = document.querySelector('input[type="date"]');
+                if (dateInput) dateInput.disabled = false;
+                
+                const startHourSelect = document.querySelector('select[v-model="startHour"]');
+                if (startHourSelect) startHourSelect.disabled = false;
+                
+                const endHourSelect = document.querySelector('select[v-model="endHour"]');
+                if (endHourSelect) endHourSelect.disabled = false;
+
+                // 나머지 코드도 동일하게 null 체크 추가
+                document.querySelectorAll('.seat-map-container .seat.disabled').forEach(el => {
+                    el.classList.remove('disabled');
+                });
+                
+                const reserveBtn = document.querySelector('.btn-reserve.disabled');
+                if (reserveBtn) {
+                    reserveBtn.disabled = false;
+                    reserveBtn.classList.remove('disabled');
+                }
+                
+                const warningDiv = document.querySelector('.active-reservation-warning');
+                if (warningDiv) {
+                    warningDiv.remove();
+                }
             }
         },
         watch: {
@@ -601,12 +838,18 @@
             }
         },
         mounted() {
-            // 페이지 로드 시 로그인 상태 확인
+            // 1. 기존 로그인 상태 확인 로직 유지
             this.checkLoginStatus();
 
-            // 컴포넌트가 마운트되면 좌석 유형 정보 불러오기 (초기에 한 번만)
+            // 3. 현재 날짜 설정 및 좌석 타입 로드 (기존 로직 유지)
+            this.today = new Date().toISOString().split('T')[0];
+            if (!this.selectedDate) { // selectedDate가 아직 설정되지 않았다면 오늘 날짜로
+                this.selectedDate = this.today;
+            }
             this.loadSeatTypes();
-            // 좌석 정보는 날짜와 시간이 모두 선택되면 loadSeats()에서 불러옵니다.
+            
+            // 4. 활성 예약 체크 로직 추가
+            this.checkActiveReservations();
         }
     });
 
